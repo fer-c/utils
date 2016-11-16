@@ -16,6 +16,7 @@
 -export([init_ctxt/3]).
 -export([get_ctxt/0]).
 -export([has_role/1]).
+-export([has_any_role/1]).
 -export([terminate/0]).
 
 
@@ -73,6 +74,16 @@ has_role(Role) ->
         #{roles := Roles} -> lists:member(Role, Roles);
         _ -> false
     end. 
+
+has_any_role(L) when is_list(L) ->
+    case get(?KEY) of
+        #{roles := All} -> 
+            sets:size(
+                sets:intersection(sets:from_list(L), sets:from_list(All))) > 0;
+        _ -> 
+            false
+    end. 
+    
     
     
 
