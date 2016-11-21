@@ -18,6 +18,7 @@
 -export([has_role/1]).
 -export([has_any_role/1]).
 -export([terminate/0]).
+-export([add_audit_info/2]).
 
 
 
@@ -60,7 +61,7 @@ terminate() ->
 
 get_ctxt() ->
     get(?KEY).
-    
+
 
 
 %% -----------------------------------------------------------------------------
@@ -73,17 +74,33 @@ has_role(Role) ->
     case get(?KEY) of
         #{roles := Roles} -> lists:member(Role, Roles);
         _ -> false
-    end. 
+    end.
 
 has_any_role(L) when is_list(L) ->
     case get(?KEY) of
-        #{roles := All} -> 
+        #{roles := All} ->
             sets:size(
                 sets:intersection(sets:from_list(L), sets:from_list(All))) > 0;
-        _ -> 
+        _ ->
             false
-    end. 
-    
-    
-    
+    end.
 
+
+%% @doc add autit fields based on the operation to the map
+add_audit_info(create, Map) when is_map(Map) ->
+    Timestamp = calendar:universal_time(),
+     case get(?KEY) of
+        #{user_id := UserId} ->
+            Map#{created_at => Timestamp, created_by => UserId};
+        _ ->
+            Map#{created_at => Timestamp}
+    end;
+
+add_audit_info(update, Map) when is_map(Map) ->
+    Timestamp = calendar:universal_time(),
+    case get(?KEY) of
+        #{user_id := UserId} ->
+            Map#{updated_at => Timestamp, updated_by => UserId};
+        _ ->
+            Map#{updated_at => Timestamp}
+    end.
