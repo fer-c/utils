@@ -12,10 +12,10 @@
 
 -define(INVALID_DATA_CODE, invalid_data).
 -define(INVALID_DATA_MSG(N), 
-    [<<"There were ">>, term_to_iolist(N), <<" validation errors.">>]
+    iolist_to_binary([<<"There were ">>, term_to_iolist(N), <<" validation errors.">>])
 ).
 -define(INVALID_DATA_DESC(N), 
-    [<<"There were ">>, term_to_iolist(N), <<" validation errors.">>]
+    iolist_to_binary([<<"There were ">>, term_to_iolist(N), <<" validation errors.">>])
 ).
 
 -define(ERROR_INVALID_DATA(L, M), #{
