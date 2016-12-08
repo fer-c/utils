@@ -2,13 +2,14 @@
 
 
 
-
-
-
-
 %% =============================================================================
 %% VALIDATION 
 %% =============================================================================
+
+
+
+-define(ALLOW_NULL, true).
+-define(ALLOW_UNDEFINED, false).
 
 -define(INVALID_DATA_CODE, invalid_data).
 -define(INVALID_DATA_MSG(N), 
@@ -83,7 +84,8 @@
                                     | map
                                     | list
                                     | string 
-                                    | {record, atom()}                  | {in, list()}
+                                    | {record, atom()}                  
+                                    | {in, list()}
                                     | {not_in, list()}
                                     | pid | reference | port.
 
@@ -91,13 +93,15 @@
                                     | {list, base_datatype()}.
 
 -type validator()               ::  fun((term()) -> 
-                                            {ok, any()} | boolean() | error
+                                        {ok, any()} | boolean() | error
                                     ) 
                                     | entry_spec(). %% nested maps
 
 -type entry_spec()              ::  #{
                                         key => any(), %% a new name for the Key
                                         required => boolean(),
+                                        allow_undefined => boolean() | remove,
+                                        allow_null => boolean() | remove,
                                         default => term(), %% only if required
                                         datatype => datatype(), 
                                         validator => validator()
@@ -290,14 +294,18 @@ validate_fold_fun(K, KSpec, {In, Out, Err, Opts}) when is_map(KSpec) ->
     case validate_key(K, In, KSpec, Opts) of
         {ok, Val} ->
             %% Maybe we rename the key
-            Key = maps:get(key, KSpec, K),
-            {In, maps:put(Key, Val, Out), Err, Opts};
+            NewKey = maps:get(key, KSpec, K),
+            {In, maps:put(NewKey, Val, Out), Err, Opts};
 
         {error, Reason} when is_list(Err) ->
+            %% atomic is true
             {In, Out, [Reason|Err], Opts};
 
         {error, Reason} ->
             error(Reason);
+        
+        remove ->
+            {In, maps:without([K], Out), Err, Opts};
 
         not_found ->
             {In, Out, Err, Opts}
@@ -309,7 +317,17 @@ validate_fold_fun(K, KSpec, _) ->
 
 %% @private
 validate_key(K, In, KSpec, Opts) ->
+
     case maps:find(K, In) of
+        {ok, null} ->
+            NewKSpec = maps:merge(#{allow_null => ?ALLOW_NULL}, KSpec),
+            maybe_allow(K, null, NewKSpec, Opts);
+
+        {ok, undefined} ->
+            NewKSpec = maps:merge(
+                #{allow_undefined => ?ALLOW_UNDEFINED}, KSpec),
+            maybe_allow(K, undefined, NewKSpec, Opts);
+        
         {ok, V} ->
             case is_valid_datatype(V, KSpec) of
                 true -> 
@@ -319,19 +337,44 @@ validate_key(K, In, KSpec, Opts) ->
                         K, maps:get(datatype, KSpec), Opts),
                     {error, Reason}
             end;
+        
         error ->
-            get_default(K, KSpec, Opts)
+            maybe_get_default(K, KSpec, Opts)
     end.
 
 
+
 %% @private
-get_default(_, #{required := true, default := V}, _) -> 
+maybe_allow(_, null, #{allow_null := true}, _) ->
+    {ok, null};
+
+maybe_allow(_, undefined, #{allow_undefined := true}, _) ->
+    {ok, undefined};
+
+maybe_allow(_, null, #{allow_null := remove}, _) ->
+    remove;
+
+maybe_allow(_, undefined, #{allow_undefined := remove}, _) ->
+    remove;
+
+maybe_allow(K, null, #{allow_null := false} = KSpec, Opts) ->
+    maybe_eval(K, null, KSpec, Opts);
+
+maybe_allow(K, undefined, #{allow_undefined := false} = KSpec, Opts) ->
+    maybe_eval(K, undefined, KSpec, Opts).
+
+
+
+
+
+%% @private
+maybe_get_default(_, #{required := true, default := V}, _) -> 
     {ok, V};
 
-get_default(K, #{required := true}, Opts) -> 
+maybe_get_default(K, #{required := true}, Opts) -> 
     {error, missing_required_value_error(K, Opts)};
 
-get_default(_, _, _) -> 
+maybe_get_default(_, _, _) -> 
     not_found.
 
 
@@ -412,6 +455,12 @@ do_maybe_eval(_, V, #{validator := Spec}, Opts) when is_map(V), is_map(Spec) ->
 
 do_maybe_eval(K, _, #{validator := Spec}, Opts) when is_map(Spec) ->
     {error, invalid_datatype_error(K, map, Opts)};
+
+do_maybe_eval(K, null, _, Opts) ->
+    {error, invalid_value_error(K, null, Opts)};
+
+do_maybe_eval(K, undefined, _, Opts) ->
+    {error, invalid_value_error(K, undefined, Opts)};
 
 do_maybe_eval(_, V, _, _) ->
     {ok, V}.

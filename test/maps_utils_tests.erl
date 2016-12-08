@@ -119,3 +119,131 @@ formatters() ->
             #{x => #{datatype => foo}}
         )
     ).
+
+null_1_test() ->
+    ?assertEqual(
+        #{foo => null},
+        maps_utils:validate(
+            #{foo => null}, 
+            #{foo => #{
+                allow_null => true,
+                datatype => binary, 
+                required => false, 
+                default => <<"foo">>,
+                validator => fun(_) -> {ok, <<"bar">>} end
+                }
+            }
+        )
+    ).
+
+null_2_test() ->
+    ?assertEqual(
+        #{foo => <<"bar">>},
+        maps_utils:validate(
+            #{foo => null}, 
+            #{foo => #{
+                allow_null => false,
+                datatype => binary, 
+                required => false, 
+                default => <<"foo">>,
+                validator => fun(_) -> {ok, <<"bar">>} end
+                }
+            }
+        )
+    ).
+
+null_3_test() ->
+    ?assertError(
+        #{code := invalid_value},
+        maps_utils:validate(
+            #{foo => null}, 
+            #{foo => #{
+                allow_null => false,
+                datatype => binary, 
+                required => false, 
+                default => <<"foo">>
+                }
+            }
+        )
+    ).
+
+null_4_test() ->
+    ?assertEqual(
+        #{},
+        maps_utils:validate(
+            #{foo => null}, 
+            #{foo => #{
+                allow_null => remove,
+                datatype => binary, 
+                required => false, 
+                default => <<"foo">>,
+                validator => fun(_) -> {ok, <<"bar">>} end
+                }
+            }
+        )
+    ).
+
+
+undefined_1_test() ->
+    ?assertEqual(
+        #{foo => undefined},
+        maps_utils:validate(
+            #{foo => undefined}, 
+            #{foo => #{
+                allow_undefined => true,
+                datatype => binary, 
+                required => false, 
+                default => <<"foo">>,
+                validator => fun(_) -> {ok, <<"bar">>} end
+                }
+            }
+        )
+    ).
+
+undefined_2_test() ->
+    ?assertEqual(
+        #{foo => <<"bar">>},
+        maps_utils:validate(
+            #{foo => undefined}, 
+            #{foo => #{
+                allow_undefined => false,
+                datatype => binary, 
+                required => false, 
+                default => <<"foo">>,
+                validator => fun(_) -> {ok, <<"bar">>} end
+                }
+            }
+        )
+    ).
+
+undefined_3_test() ->
+    ?assertError(
+        #{code := invalid_value},
+        maps_utils:validate(
+            #{foo => undefined}, 
+            #{foo => #{
+                allow_undefined => false,
+                datatype => binary, 
+                required => false, 
+                default => <<"foo">>
+                }
+            }
+        )
+    ).
+
+undefined_4_test() ->
+    ?assertEqual(
+        #{},
+        maps_utils:validate(
+            #{foo => undefined}, 
+            #{foo => #{
+                allow_undefined => remove,
+                datatype => binary, 
+                required => false, 
+                default => <<"foo">>,
+                validator => fun(_) -> {ok, <<"bar">>} end
+                }
+            }
+        )
+    ).
+
