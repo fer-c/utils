@@ -14,6 +14,7 @@
 -export_type([ctxt/0]).
 
 -export([init_ctxt/3]).
+-export([init_ctxt/4]).
 -export([get_ctxt/0]).
 -export([has_role/1]).
 -export([has_any_role/1]).
@@ -36,9 +37,28 @@
 -spec init_ctxt(
     ClientId :: binary(), UserId :: binary(), Roles :: list()) -> ok.
 
-init_ctxt(AccId, UserId, Roles)
-when is_binary(AccId), is_binary(UserId), is_list(Roles) ->
-    _ = put(?KEY, #{account_id => AccId, user_id => UserId, roles => Roles}),
+init_ctxt(AccId, UserId, Roles) ->
+    init_ctxt(AccId, UserId, Roles, #{}).
+
+
+%% -----------------------------------------------------------------------------
+%% @doc
+%% Initialises an authorization context storing it in the process dictionary.
+%% @end
+%% -----------------------------------------------------------------------------
+-spec init_ctxt(
+    ClientId :: binary(), 
+    UserId :: binary(), 
+    Roles :: list(), 
+    Info :: map()) -> ok.
+
+init_ctxt(AccId, UserId, Roles, Info)
+when is_binary(AccId), is_binary(UserId), is_list(Roles), is_map(Info) ->
+    _ = put(?KEY, #{
+            account_id => AccId, 
+            user_id => UserId, 
+            roles => Roles,
+            info => Info}),
     ok.
 
 
