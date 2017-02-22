@@ -247,3 +247,40 @@ undefined_4_test() ->
         )
     ).
 
+merge_test() ->
+    Result = maps_utils:validate(
+        #{foo => 1, bar => 2}, 
+        #{
+            foo => #{
+                key => foobar,
+                required => true, 
+                validator => 
+                    fun(V) -> 
+                        {merge, fun
+                            (undefined) ->
+                                #{bar => V};
+                            (X) ->
+                                maps:merge(#{foo => V}, X)
+                            end
+                        } 
+                    end
+            },
+            bar => #{
+                key => foobar,
+                required => true, 
+                validator => 
+                    fun(V) -> 
+                        {merge, fun
+                            (undefined) ->
+                                #{bar => V};
+                            (X) ->
+                                maps:merge(#{bar => V}, X)
+                            end
+                        } 
+                    end
+            }
+        }
+    ),
+    ?assertEqual(#{foobar => #{foo => 1, bar => 2}}, Result).
+
+   

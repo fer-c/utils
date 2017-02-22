@@ -297,6 +297,12 @@ validate_fold_fun(K, KSpec, {In, Out, Err, Opts}) when is_map(KSpec) ->
             NewKey = maps:get(key, KSpec, K),
             {In, maps:put(NewKey, Val, Out), Err, Opts};
 
+        {merge, Fun} when is_function(Fun, 1) ->
+            %% Maybe we rename the key
+            NewKey = maps:get(key, KSpec, K),
+            Val = Fun(maps:get(NewKey, Out, undefined)),
+            {In, maps:put(NewKey, Val, Out), Err, Opts};
+        
         {error, Reason} when is_list(Err) ->
             %% atomic is true
             {In, Out, [Reason|Err], Opts};
@@ -434,6 +440,8 @@ when is_list(V), is_map(Spec) ->
 do_maybe_eval(K, V, #{validator := Fun}, Opts) when is_function(Fun, 1) ->
     case Fun(V) of
         {ok, _} = OK -> 
+            OK;
+        {merge, MergeFun} = OK when is_function(MergeFun, 1) -> 
             OK;
         true -> 
             {ok, V};
