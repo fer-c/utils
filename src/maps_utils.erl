@@ -75,6 +75,9 @@
 
 -type base_datatype()          ::   boolean
                                     | integer
+                                    | pos_integer
+                                    | neg_integer
+                                    | timeout
                                     | float
                                     | number
                                     | atom
@@ -482,6 +485,18 @@ is_valid_datatype(V, #{datatype := atom}) when is_atom(V) ->
     true;
 
 is_valid_datatype(V, #{datatype := integer}) when is_integer(V) ->
+    true;   
+
+is_valid_datatype(V, #{datatype := pos_integer})
+when is_integer(V) andalso V > 0 ->
+    true;
+
+is_valid_datatype(V, #{datatype := neg_integer}) 
+when is_integer(V) andalso V < 0 ->
+    true;
+
+is_valid_datatype(V, #{datatype := timeout}) 
+when V =:= infinity orelse (is_integer(V) andalso V > 0) ->
     true;
 
 is_valid_datatype(V, #{datatype := float}) when is_float(V) ->
