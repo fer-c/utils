@@ -527,7 +527,7 @@ is_valid_datatype(V, #{datatype := bitstring}) when is_bitstring(V) ->
     true;
 
 is_valid_datatype(V, #{datatype := map}) when is_map(V) ->
-    true;
+   true;
 
 is_valid_datatype(V, #{datatype := {record, Tag}}) when is_atom(Tag) ->
     is_record(V, Tag);
