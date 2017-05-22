@@ -89,7 +89,9 @@
                                     | string 
                                     | {record, atom()}                  
                                     | {in, list()}
-                                    | {not_in, list()}
+                                    | {one_of, [base_datatype()]}
+                                    | function
+                                    | {function, N :: non_neg_integer()}
                                     | pid | reference | port.
 
 -type datatype()                ::  base_datatype()
@@ -106,7 +108,7 @@
                                         allow_undefined => boolean() | remove,
                                         allow_null => boolean() | remove,
                                         default => term(), %% only if required
-                                        datatype => datatype(), 
+                                        datatype => datatype() | [datatype()], 
                                         validator => validator()
                                     }.
 -type map_spec()                ::  #{term() => entry_spec()}.
@@ -478,6 +480,16 @@ do_maybe_eval(_, V, _, _) ->
 
 
 %% @private
+is_valid_datatype(V, #{datatype := L}) when is_list(L) ->
+    is_valid_datatype(V, L);
+
+is_valid_datatype(_, []) ->
+    false;
+
+is_valid_datatype(V, [H|T]) ->
+    is_valid_datatype(V, #{datatype => H}) 
+    orelse is_valid_datatype(V, #{datatype => T});
+
 is_valid_datatype(V, #{datatype := boolean}) when is_boolean(V) ->
     true;
 
@@ -503,6 +515,12 @@ is_valid_datatype(V, #{datatype := float}) when is_float(V) ->
     true;
 
 is_valid_datatype(V, #{datatype := number}) when is_integer(V) orelse is_float(V) ->
+    true;
+
+is_valid_datatype(V, #{datatype := function}) when is_function(V) ->
+    true;
+
+is_valid_datatype(V, #{datatype := {function, N}}) when is_function(V, N) ->
     true;
 
 is_valid_datatype(V, #{datatype := pid}) when is_pid(V) ->
