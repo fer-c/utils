@@ -480,13 +480,10 @@ do_maybe_eval(_, V, _, _) ->
 
 
 %% @private
-is_valid_datatype(V, #{datatype := L}) when is_list(L) ->
-    is_valid_datatype(V, L);
-
-is_valid_datatype(_, []) ->
+is_valid_datatype(_, #{datatype := []}) ->
     false;
 
-is_valid_datatype(V, [H|T]) ->
+is_valid_datatype(V, #{datatype := [H|T]}) ->
     is_valid_datatype(V, #{datatype => H}) 
     orelse is_valid_datatype(V, #{datatype => T});
 
