@@ -129,6 +129,7 @@
     error_formatters => formatters()
 }.
 
+-type path()    ::  [term()].
 
 
 -export_type([datatype/0]).
@@ -146,6 +147,9 @@
 -export([get_path/2]).
 -export([get_path/3]).
 -export([put_path/3]).
+-export([remove_path/2]).
+-export([with_paths/2]).
+-export([without_paths/2]).
 
 
 %% =============================================================================
@@ -163,7 +167,7 @@
 %% </code>
 %% @end
 %% -----------------------------------------------------------------------------
--spec get_path(Path :: [term()], Map :: map()) -> Value :: term().
+-spec get_path(Path :: path(), Map :: map()) -> Value :: term().
 
 get_path(Path, Map) ->
     get_path(Path, Map, '$badkey').
@@ -173,7 +177,7 @@ get_path(Path, Map) ->
 %% @doc
 %% @end
 %% -----------------------------------------------------------------------------
--spec get_path(Path :: [term()], Map :: map(), Default :: term()) -> 
+-spec get_path(Path :: path(), Map :: map(), Default :: term()) -> 
     Value :: term().
 
 get_path([], _, _) ->
@@ -183,7 +187,7 @@ get_path(Path, Map, Default)  when is_list(Path) ->
     do_get_path(Path, Map, Default).
 
 
- 
+
 %% -----------------------------------------------------------------------------
 %% @doc
 %% @end
@@ -195,6 +199,61 @@ put_path([], _, _) ->
 
 put_path(Path, Value, Map) when is_list(Path) ->
     do_put_path(Path, Value, Map).
+
+
+
+%% -----------------------------------------------------------------------------
+%% @doc
+%% @end
+%% -----------------------------------------------------------------------------
+-spec remove_path(Key :: path(), Map :: map()) -> map().
+ 
+remove_path([], _) ->
+     error({badkey, []});
+
+remove_path(Path, Map) when is_list(Path) ->
+    do_remove_path(Path, Map).
+
+
+
+%% -----------------------------------------------------------------------------
+%% @doc
+%% @end
+%% -----------------------------------------------------------------------------
+-spec with_paths(PathList :: [path()], Map :: map()) -> map().
+
+with_paths([], _) ->
+    #{};
+
+with_paths(Ps, M) when is_list(Ps), is_map(M) ->
+    Fun = fun(P, Acc) ->
+      put_path(P, get_path(P, M), Acc)
+    end,
+    lists:foldl(Fun, #{}, Ps);
+
+with_paths(Ps, M) ->
+    erlang:error(error_type(M), [Ps, M]).
+
+
+%% -----------------------------------------------------------------------------
+%% @doc
+%% @end
+%% -----------------------------------------------------------------------------
+-spec without_paths(PathList :: [path()], Map :: map()) -> map().
+
+without_paths([], M) ->
+    M;
+
+without_paths(Ps, M) when is_list(Ps), is_map(M) ->
+    Fun = fun(P, Acc) ->
+      remove_path(P, Acc)
+    end,
+    lists:foldl(Fun, M, Ps);
+
+without_paths(Ps, M) ->
+    erlang:error(error_type(M), [Ps, M]).
+
+
 
 
 %% -----------------------------------------------------------------------------
@@ -381,6 +440,23 @@ do_put_path([], _, Map) ->
 
 do_put_path(Key, Value, Map) ->
     maps:put(Key, Value, Map).
+
+
+%% @private
+do_remove_path([Key], Map) ->
+    maps:remove(Key, Map);
+
+do_remove_path([H|T], Map) when is_map(Map) ->
+    maps:put(H, do_remove_path(T, maps:get(H, Map, #{})), Map);
+
+do_remove_path([H|_], Term) when is_list(H) ->
+    error({badmap, Term});
+
+do_remove_path([], Map) ->
+    Map;
+
+do_remove_path(Key, Map) ->
+    maps:remove(Key, Map).
 
 
 
@@ -743,3 +819,7 @@ invalid_value_error(K, V, #{error_formatters := #{invalid_value := Fun}}) ->
 
 invalid_value_error(K, V, _) ->
     ?ERROR_INVALID_VALUE(K, V, ?INVALID_VALUE_MSG(K, V)).
+
+%% From maps.erl
+error_type(M) when is_map(M) -> badarg;
+error_type(V) -> {badmap, V}.
