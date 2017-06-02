@@ -143,9 +143,9 @@
 -export([append_list/3]).
 -export([collect/2]).
 -export([split/2]).
--export([get/2]).
--export([get/3]).
--export([put/3]).
+-export([get_path/2]).
+-export([get_path/3]).
+-export([put_path/3]).
 
 
 %% =============================================================================
@@ -163,23 +163,24 @@
 %% </code>
 %% @end
 %% -----------------------------------------------------------------------------
--spec get(Path :: [term()], Map :: map()) -> Value :: term().
+-spec get_path(Path :: [term()], Map :: map()) -> Value :: term().
 
-get(Path, Map) ->
-    get(Path, Map, '$badkey').
+get_path(Path, Map) ->
+    get_path(Path, Map, '$badkey').
 
 
 %% -----------------------------------------------------------------------------
 %% @doc
 %% @end
 %% -----------------------------------------------------------------------------
--spec get(Path :: [term()], Map :: map(), Default :: term()) -> Value :: term().
+-spec get_path(Path :: [term()], Map :: map(), Default :: term()) -> 
+    Value :: term().
 
-get([], _, _) ->
+get_path([], _, _) ->
     error({badkey, []});
 
-get(Path, Map, Default)  when is_list(Path) ->
-    do_get(Path, Map, Default).
+get_path(Path, Map, Default)  when is_list(Path) ->
+    do_get_path(Path, Map, Default).
 
 
  
@@ -187,13 +188,13 @@ get(Path, Map, Default)  when is_list(Path) ->
 %% @doc
 %% @end
 %% -----------------------------------------------------------------------------
--spec put(Key :: [term()], Value :: term(), Map :: map()) -> map().
+-spec put_path(Key :: [term()], Value :: term(), Map :: map()) -> map().
  
-put([], _, _) ->
+put_path([], _, _) ->
      error({badkey, []});
 
-put(Path, Value, Map) when is_list(Path) ->
-    do_put(Path, Value, Map).
+put_path(Path, Value, Map) when is_list(Path) ->
+    do_put_path(Path, Value, Map).
 
 
 %% -----------------------------------------------------------------------------
@@ -342,16 +343,16 @@ do_validate(Map0, Spec, Opts) when is_map(Spec), is_map(Opts) ->
 
 
 %% @private
-do_get([Key], Map, Default) ->
+do_get_path([Key], Map, Default) ->
     maybe_get(Key, Map, Default);
 
-do_get([H|T], Map, Default) ->
-    do_get(T, maybe_get(H, Map, Default), Default);
+do_get_path([H|T], Map, Default) ->
+    do_get_path(T, maybe_get(H, Map, Default), Default);
 
-do_get([], Map, _) ->
+do_get_path([], Map, _) ->
     Map;
 
-do_get(Key, Map, Default) ->
+do_get_path(Key, Map, Default) ->
     maybe_get(Key, Map, Default).
 
 
@@ -366,19 +367,19 @@ maybe_get(Key, Map, Default) ->
 
 
 %% @private
-do_put([Key], Value, Map) ->
+do_put_path([Key], Value, Map) ->
     maps:put(Key, Value, Map);
 
-do_put([H|T], Value, Map) when is_map(Map) ->
-    maps:put(H, do_put(T, Value, maps:get(H, Map, #{})), Map);
+do_put_path([H|T], Value, Map) when is_map(Map) ->
+    maps:put(H, do_put_path(T, Value, maps:get(H, Map, #{})), Map);
 
-do_put([H|_], _, Term) when is_list(H) ->
+do_put_path([H|_], _, Term) when is_list(H) ->
     error({badmap, Term});
 
-do_put([], _, Map) ->
+do_put_path([], _, Map) ->
     Map;
 
-do_put(Key, Value, Map) ->
+do_put_path(Key, Value, Map) ->
     maps:put(Key, Value, Map).
 
 
