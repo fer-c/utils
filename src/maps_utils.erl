@@ -143,11 +143,49 @@
 -export([append_list/3]).
 -export([collect/2]).
 -export([split/2]).
+-export([get/2]).
+-export([get/3]).
 
 
 %% =============================================================================
 %% API
 %% =============================================================================
+
+%% -----------------------------------------------------------------------------
+%% @doc
+%% A wrapper for {@link maps:get/2} that supports key paths in the form 
+%% of a list of keys.
+%%
+%% Example:
+%% <code language=erlang>
+%% 42 =:= maps_utils:get([foo, bar], #{foo => #{bar => 42}}).
+%% </code>
+%% @end
+%% -----------------------------------------------------------------------------
+-spec get(Key :: term(), Map :: map()) -> Value :: term().
+
+get([], _) ->
+    error({badkey, []});
+
+get(Key, Map) ->
+    do_get(Key, Map, '$badkey').
+
+
+%% -----------------------------------------------------------------------------
+%% @doc
+%% @end
+%% -----------------------------------------------------------------------------
+-spec get(Key :: term(), Map :: map(), Default :: term()) -> Value :: term().
+
+get([], _, _) ->
+    error({badkey, []});
+
+get(Key, Map, Default) ->
+    do_get(Key, Map, Default).
+
+
+ 
+
 
 %% -----------------------------------------------------------------------------
 %% @doc
@@ -283,6 +321,41 @@ do_validate(Map0, Spec, Opts) when is_map(Spec), is_map(Opts) ->
         {Map0, _, L, _} ->
             {error, invalid_data_error(L, Opts)}
     end.
+
+
+
+
+
+
+%% =============================================================================
+%% PRIVATE
+%% =============================================================================
+
+
+%% @private
+do_get([Key], Map, Default) ->
+    maybe_get(Key, Map, Default);
+
+do_get([H|T], Map, Default) when is_list(H) ->
+    do_get(T, maybe_get(H, Map, Default), Default);
+
+do_get([], Map, _) ->
+    Map;
+
+do_get(Key, Map, Default) ->
+    maybe_get(Key, Map, Default).
+
+
+%% @private
+maybe_get(Key, Map, Default) ->
+    case maps:get(Key, Map, Default) of
+        '$badkey' -> 
+            error({badkey, Key});
+        Value -> 
+            Value
+    end.
+
+
 
 
 
