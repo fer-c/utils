@@ -138,16 +138,18 @@
 -export_type([map_spec/0]).
 
 
--export([validate/2]).
--export([validate/3]).
 -export([append/3]).
 -export([append_list/3]).
+-export([append_list_path/3]).
+-export([append_path/3]).
 -export([collect/2]).
--export([split/2]).
 -export([get_path/2]).
 -export([get_path/3]).
 -export([put_path/3]).
 -export([remove_path/2]).
+-export([split/2]).
+-export([validate/2]).
+-export([validate/3]).
 -export([with_paths/2]).
 -export([without_paths/2]).
 
@@ -259,17 +261,23 @@ without_paths(Ps, M) ->
 %% -----------------------------------------------------------------------------
 %% @doc
 %% This function appends a new Value to the current list of values associated
-%% with Key.
+%% with Key. An exception is generated if the initial value
+%% associated with Key is not a list of values.
 %% @end
 %% -----------------------------------------------------------------------------
 append(Key, Value, Map) ->
-    case maps:get(Key, Map, []) of
-        Values when is_list(Values) ->
-            maps:update(Key, [Value|Values], Map);
-        Prev ->
-            maps:put(Key, [Value, Prev], Map)
-    end.
+    append(Key, [Value], Map).
 
+
+%% -----------------------------------------------------------------------------
+%% @doc
+%% @end
+%% -----------------------------------------------------------------------------
+append_path([], _, _) ->
+     error({badkey, []});
+
+append_path(Path, Value, Map) when is_list(Path) ->
+    do_append_list_path(Path, [Value], Map).
 
 %% -----------------------------------------------------------------------------
 %% @doc
@@ -282,9 +290,23 @@ append_list(Key, Values, Map) when is_list(Values) ->
     case maps:get(Key, Map, []) of
         OldValues when is_list(OldValues) ->
             maps:update(Key, lists:append(OldValues, Values), Map);
-        _ ->
-            error(badarg)
-    end.
+        Val ->
+            error({badlist, Val})
+    end;
+
+append_list(Key, Values, Map) ->
+    error({badarg, [Key, Values, Map]}).
+
+
+%% -----------------------------------------------------------------------------
+%% @doc
+%% @end
+%% -----------------------------------------------------------------------------
+append_list_path([], _, _) ->
+     error({badkey, []});
+
+append_list_path(Path, Value, Map) when is_list(Path) ->
+    do_append_list_path(Path, Value, Map).
 
 
 %% -----------------------------------------------------------------------------
@@ -293,6 +315,7 @@ append_list(Key, Values, Map) when is_list(Values) ->
 %% @end
 %% -----------------------------------------------------------------------------
 -spec collect(Keys :: list(), Map :: map()) -> list().
+
 collect(Keys, Map) ->
     L = [begin
         case maps:find(K, Map) of
@@ -440,6 +463,23 @@ do_put_path([], _, Map) ->
 
 do_put_path(Key, Value, Map) ->
     maps:put(Key, Value, Map).
+
+
+%% @private
+do_append_list_path([Key], Value, Map) ->
+    append_list(Key, Value, Map);
+
+do_append_list_path([H|T], Value, Map) when is_map(Map) ->
+    maps:put(H, do_append_list_path(T, Value, maps:get(H, Map, #{})), Map);
+
+do_append_list_path([H|_], _, Term) when is_list(H) ->
+    error({badmap, Term});
+
+do_append_list_path([], _, Map) ->
+    Map;
+
+do_append_list_path(Key, Value, Map) ->
+    append_list(Key, Value, Map).
 
 
 %% @private
