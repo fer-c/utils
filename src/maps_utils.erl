@@ -145,6 +145,7 @@
 -export([split/2]).
 -export([get/2]).
 -export([get/3]).
+-export([put/3]).
 
 
 %% =============================================================================
@@ -162,29 +163,37 @@
 %% </code>
 %% @end
 %% -----------------------------------------------------------------------------
--spec get(Key :: term(), Map :: map()) -> Value :: term().
+-spec get(Path :: [term()], Map :: map()) -> Value :: term().
 
-get([], _) ->
-    error({badkey, []});
-
-get(Key, Map) ->
-    do_get(Key, Map, '$badkey').
+get(Path, Map) ->
+    get(Path, Map, '$badkey').
 
 
 %% -----------------------------------------------------------------------------
 %% @doc
 %% @end
 %% -----------------------------------------------------------------------------
--spec get(Key :: term(), Map :: map(), Default :: term()) -> Value :: term().
+-spec get(Path :: [term()], Map :: map(), Default :: term()) -> Value :: term().
 
 get([], _, _) ->
     error({badkey, []});
 
-get(Key, Map, Default) ->
-    do_get(Key, Map, Default).
+get(Path, Map, Default)  when is_list(Path) ->
+    do_get(Path, Map, Default).
 
 
  
+%% -----------------------------------------------------------------------------
+%% @doc
+%% @end
+%% -----------------------------------------------------------------------------
+-spec put(Key :: [term()], Value :: term(), Map :: map()) -> map().
+ 
+put([], _, _) ->
+     error({badkey, []});
+
+put(Path, Value, Map) when is_list(Path) ->
+    do_put(Path, Value, Map).
 
 
 %% -----------------------------------------------------------------------------
@@ -336,7 +345,7 @@ do_validate(Map0, Spec, Opts) when is_map(Spec), is_map(Opts) ->
 do_get([Key], Map, Default) ->
     maybe_get(Key, Map, Default);
 
-do_get([H|T], Map, Default) when is_list(H) ->
+do_get([H|T], Map, Default) ->
     do_get(T, maybe_get(H, Map, Default), Default);
 
 do_get([], Map, _) ->
@@ -356,6 +365,21 @@ maybe_get(Key, Map, Default) ->
     end.
 
 
+%% @private
+do_put([Key], Value, Map) ->
+    maps:put(Key, Value, Map);
+
+do_put([H|T], Value, Map) when is_map(Map) ->
+    maps:put(H, do_put(T, Value, maps:get(H, Map, #{})), Map);
+
+do_put([H|_], _, Term) when is_list(H) ->
+    error({badmap, Term});
+
+do_put([], _, Map) ->
+    Map;
+
+do_put(Key, Value, Map) ->
+    maps:put(Key, Value, Map).
 
 
 
