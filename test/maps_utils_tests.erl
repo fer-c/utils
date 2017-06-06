@@ -301,3 +301,25 @@ merge_test() ->
     ?assertEqual(#{foobar => #{foo => 1, bar => 2}}, Result).
 
    
+   merge_2_test() ->
+    Result = maps_utils:validate(
+        #{foo => 1, bar => 2}, 
+        #{
+            foo => #{
+                required => true, 
+                validator => 
+                    fun(V) -> 
+                        {merge, fun
+                            (undefined) ->
+                                #{bar => V};
+                            (X) ->
+                                maps:merge(#{foo => V}, X)
+                            end
+                        } 
+                    end
+            },
+            bar => #{
+                required => true}
+        }
+    ),
+    ?assertEqual(#{foo => #{bar => 1}, bar => 2}, Result).

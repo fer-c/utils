@@ -101,20 +101,32 @@
                                     | map
                                     | list
                                     | string 
-                                    | {record, atom()}                  
-                                    | {in, list()}
-                                    | {one_of, [base_datatype()]}
+                                    | {record, Name :: atom()}                  
+                                    
                                     | function
                                     | {function, N :: non_neg_integer()}
                                     | pid | reference | port.
 
--type datatype()                ::  base_datatype()
-                                    | {list, base_datatype()}.
+-type compound()                ::  [base_datatype()]
+                                    | {list, [base_datatype()]}
+                                    | {in, [base_datatype()]}
+                                    | {not_in, [base_datatype()]}.
 
--type validator()               ::  fun((term()) -> 
-                                        {ok, any()} | boolean() | error
-                                    ) 
-                                    | entry_spec(). %% nested maps
+-type datatype()                ::  compound() | {list, compound()}.
+
+-type validator_fun()               ::  fun((term()) -> 
+                                        {ok, any()} 
+                                        | {merge, fun((map()) -> map())}
+                                        | boolean() 
+                                        | error
+                                    ).
+
+-type validator()               ::  {list, validator_fun()}
+                                    | {list, entry_spec()}
+                                    | [validator_fun()| entry_spec()]
+                                    | validator_fun()
+                                    | entry_spec().
+
 
 -type entry_spec()              ::  #{
                                         key => any(), %% a new name for the Key
@@ -183,7 +195,7 @@
 %%
 %% Example:
 %% <code language=erlang>
-%% 42 =:= maps_utils:get([foo, bar], #{foo => #{bar => 42}}).
+%% 42 =:= maps_utils:get_path([foo, bar], #{foo => #{bar => 42}}).
 %% </code>
 %% @end
 %% -----------------------------------------------------------------------------
@@ -631,7 +643,7 @@ maybe_eval(K, V, KSpec, Opts) ->
 
 
 do_maybe_eval(K, V, #{validator := {list, Fun}}, Opts)
-when is_list(V), is_function(Fun, 1) ->
+when is_list(V), (is_function(Fun, 1) orelse is_function(Fun, 2)) ->
 
     Inner = fun(E, Acc) ->
         case Fun(E) of
@@ -677,7 +689,7 @@ do_maybe_eval(K, V, #{validator := Fun}, Opts) when is_function(Fun, 1) ->
     case Fun(V) of
         {ok, _} = OK -> 
             OK;
-        {merge, MergeFun} = OK when is_function(MergeFun, 1) -> 
+        {merge, Merge} = OK when is_function(Merge, 1) -> 
             OK;
         true -> 
             {ok, V};
