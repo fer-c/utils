@@ -643,7 +643,7 @@ maybe_eval(K, V, KSpec, Opts) ->
 
 
 do_maybe_eval(K, V, #{validator := {list, Fun}}, Opts)
-when is_list(V), (is_function(Fun, 1) orelse is_function(Fun, 2)) ->
+when is_list(V), is_function(Fun, 1) ->
 
     Inner = fun(E, Acc) ->
         case Fun(E) of
