@@ -151,6 +151,7 @@
 
 -type validation_opts() ::  #{
     atomic => boolean(), 
+    labels => binary | atom | existing_atom | attempt_atom,
     error_code => atom(),
     error_formatters => formatters()
 }.
@@ -535,6 +536,65 @@ do_remove_path(Key, Map) ->
 %% =============================================================================
 
 
+%% private
+b2o(Term, binary) ->
+    Term;
+b2o(Term, atom) ->
+    binary_to_atom(Term, utf8);
+b2o(Term, existing_atom) ->
+    binary_to_existing_atom(Term, utf8);
+b2o(Term, attempt_atom) ->
+    try 
+        binary_to_existing_atom(Term, utf8)
+    catch
+        _:_ ->
+            Term
+    end.
+
+%% private
+l2o(Term, binary) ->
+    unicode:characters_to_binary(Term, utf8);
+l2o(Term, atom) ->
+    list_to_atom(Term);
+l2o(Term, existing_atom) ->
+    list_to_existing_atom(Term);
+l2o(Term, attempt_atom) ->
+    try 
+        list_to_existing_atom(Term)
+    catch
+        _:_ ->
+            Term
+    end.
+
+%% private
+i2o(Term, Opt) ->
+    b2o(integer_to_binary(Term), Opt).
+
+
+%% @private
+maybe_rename_key(_, #{key := Key}, _) ->
+    %% This overrides any label global option
+    Key;
+
+maybe_rename_key(K, _, #{labels := Opt}) when is_binary(K) ->
+    b2o(K, Opt);
+
+maybe_rename_key(K, _, #{labels := Opt}) when is_list(K) ->
+    l2o(K, Opt);
+
+maybe_rename_key(K, _, #{labels := binary}) when is_atom(K) ->
+    atom_to_binary(K, utf8);
+
+maybe_rename_key(K, _, #{labels := _Atom}) when is_atom(K) ->
+    K;
+
+maybe_rename_key(K, _, #{labels := Opt}) when is_integer(K) ->
+    i2o(K, Opt);
+
+maybe_rename_key(K, _, _) ->
+    K.
+
+
 
 %% @private
 validate_fold_fun(K, KSpec, {In, Out, Err, Opts}) when is_map(KSpec) ->
@@ -542,7 +602,7 @@ validate_fold_fun(K, KSpec, {In, Out, Err, Opts}) when is_map(KSpec) ->
     case validate_key(K, In, KSpec, Opts) of
         {ok, Val} ->
             %% Maybe we rename the key
-            NewKey = maps:get(key, KSpec, K),
+            NewKey = maybe_rename_key(K, KSpec, Opts),
             {In, maps:put(NewKey, Val, Out), Err, Opts};
 
         {merge, Fun} when is_function(Fun, 1) ->
