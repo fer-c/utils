@@ -459,7 +459,10 @@ do_get_path([Key], Map, Default) ->
     maybe_get(Key, Map, Default);
 
 do_get_path([H|T], Map, Default) ->
-    do_get_path(T, maybe_get(H, Map, Default), Default);
+    case maybe_get(H, Map, Default) of
+        Default -> Default;
+        Val -> do_get_path(T, Val , Default)
+    end;
 
 do_get_path([], Map, _) ->
     Map;
