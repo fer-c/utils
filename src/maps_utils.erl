@@ -102,7 +102,6 @@
                                     | list
                                     | string 
                                     | {record, Name :: atom()}                  
-                                    
                                     | function
                                     | {function, N :: non_neg_integer()}
                                     | pid | reference | port.
@@ -130,6 +129,7 @@
 
 -type entry_spec()              ::  #{
                                         key => any(), %% a new name for the Key
+                                        alias => any(),
                                         required => boolean(),
                                         allow_undefined => boolean() | remove,
                                         allow_null => boolean() | remove,
@@ -598,8 +598,12 @@ maybe_rename_key(K, _, _) ->
     K.
 
 
-
+%% -----------------------------------------------------------------------------
 %% @private
+%% @doc
+%% Calls validate_key/4 for every K in the Spec in any order.
+%% @end
+%% -----------------------------------------------------------------------------
 validate_fold_fun(K, KSpec, {In, Out, Err, Opts}) when is_map(KSpec) ->
     
     case validate_key(K, In, KSpec, Opts) of
@@ -635,7 +639,7 @@ validate_fold_fun(K, KSpec, _) ->
 %% @private
 validate_key(K, In, KSpec, Opts) ->
 
-    case maps:find(K, In) of
+    case find(K, In, KSpec) of
         {ok, null} ->
             NewKSpec = maps:merge(#{allow_null => ?ALLOW_NULL}, KSpec),
             maybe_allow(K, null, NewKSpec, Opts);
@@ -659,6 +663,16 @@ validate_key(K, In, KSpec, Opts) ->
             maybe_get_default(K, KSpec, Opts)
     end.
 
+
+find(K1, Map, Spec) ->
+    case {maps:find(K1, Map), Spec} of
+        {error, #{alias := K2}} ->
+            maps:find(K2, Map);
+        {error, _} ->
+            error;
+        {OK, _} ->
+            OK
+    end.
 
 
 %% @private
