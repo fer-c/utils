@@ -323,3 +323,26 @@ merge_test() ->
         }
     ),
     ?assertEqual(#{foo => #{bar => 1}, bar => 2}, Result).
+
+
+alias_1_test() ->
+    ?assertEqual(
+        #{foo => 1},
+        maps_utils:validate(
+            #{foo => 1}, 
+            #{foo => #{
+                alias => <<"foo">>
+            }}
+        )
+    ).
+
+alias_2_test() ->
+    ?assertEqual(
+        #{foo => 1},
+        maps_utils:validate(
+            #{<<"foo">> => 1}, 
+            #{foo => #{
+                alias => <<"foo">>
+            }}
+        )
+    ).
