@@ -667,6 +667,15 @@ validate_key(K, In, KSpec, Opts) ->
             maybe_get_default(K, KSpec, Opts)
     end.
 
+find(K1, Map, Spec) ->
+    case {maps:find(K1, Map), Spec} of
+        {error, #{alias := K2}} ->
+            maps:find(K2, Map);
+        {error, _} ->
+            error;
+        {OK, _} ->
+            OK
+    end.
 
 find(K1, Map, Spec) ->
     case {maps:find(K1, Map), Spec} of
