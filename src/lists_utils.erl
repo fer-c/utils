@@ -81,6 +81,9 @@ rotate_right([], _, Acc) ->
 
 %% -----------------------------------------------------------------------------
 %% @doc
+%% Example:
+%% > lists_utils:rotate_right_with(fun(X) -> X == a end, [a,b,c]).
+%% [b,c,a]
 %% @end
 %% -----------------------------------------------------------------------------
 -spec rotate_right_with(fun((term()) -> boolean()), list()) -> list().
