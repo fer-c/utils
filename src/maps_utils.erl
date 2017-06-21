@@ -909,9 +909,6 @@ is_valid_datatype(_, _) ->
 
 term_to_iolist(Term) when is_binary(Term) ->
     Term;
-
-term_to_iolist(Term) when is_list(Term) ->
-    Term;
     
 term_to_iolist(Term) ->
     io_lib:format("~p", [Term]).
