@@ -87,24 +87,27 @@
         <<"' for '">>, term_to_iolist(K), <<"' did not pass the validator.">>])
 }).
 
--type base_datatype()          ::   boolean
-                                    | integer
-                                    | pos_integer
-                                    | neg_integer
-                                    | timeout
-                                    | float
-                                    | number
-                                    | atom
+-type base_datatype()          ::   atom
                                     | binary
                                     | bitstring
-                                    | tuple
-                                    | map
-                                    | list
-                                    | string 
-                                    | {record, Name :: atom()}                  
+                                    | boolean
+                                    | float
                                     | function
+                                    | integer
+                                    | list
+                                    | map
+                                    | neg_integer
+                                    | non_neg_integer
+                                    | number
+                                    | pid 
+                                    | port
+                                    | pos_integer
+                                    | reference 
+                                    | string 
+                                    | timeout
+                                    | tuple
                                     | {function, N :: non_neg_integer()}
-                                    | pid | reference | port.
+                                    | {record, Name :: atom()}.                 
 
 -type compound()                ::  [base_datatype()]
                                     | {list, [base_datatype()]}
@@ -824,6 +827,10 @@ is_valid_datatype(V, #{datatype := neg_integer})
 when is_integer(V) andalso V < 0 ->
     true;
 
+is_valid_datatype(V, #{datatype := non_neg_integer}) 
+when is_integer(V) andalso V >= 0 ->
+    true;
+
 is_valid_datatype(V, #{datatype := timeout}) 
 when V =:= infinity orelse (is_integer(V) andalso V > 0) ->
     true;
@@ -831,7 +838,7 @@ when V =:= infinity orelse (is_integer(V) andalso V > 0) ->
 is_valid_datatype(V, #{datatype := float}) when is_float(V) ->
     true;
 
-is_valid_datatype(V, #{datatype := number}) when is_integer(V) orelse is_float(V) ->
+is_valid_datatype(V, #{datatype := number}) when is_number(V) ->
     true;
 
 is_valid_datatype(V, #{datatype := function}) when is_function(V) ->
@@ -915,19 +922,26 @@ is_datatype(binary) -> true;
 is_datatype(bitstring) -> true;
 is_datatype(boolean) -> true;
 is_datatype(float) -> true;
+is_datatype(function) -> true;
 is_datatype(integer) -> true;
 is_datatype(list) -> true;
 is_datatype(map) -> true;
+is_datatype(neg_integer) -> true;
+is_datatype(non_neg_integer) -> true;
 is_datatype(number) -> true;
 is_datatype(pid) -> true;
 is_datatype(port) -> true;
+is_datatype(pos_integer) -> true;
 is_datatype(reference) -> true;
 is_datatype(string) -> true;
+is_datatype(timeout) -> true;
 is_datatype(tuple) -> true;
-is_datatype({in, L}) when is_list(L) -> true;
-is_datatype({not_in, L}) when is_list(L) -> true;
+is_datatype({function, N}) when is_integer(N), N >= 0 -> true;
 is_datatype({record, Tag}) when is_atom(Tag) -> true;
-is_datatype({list, T}) -> is_datatype(T);                 
+is_datatype({in, L}) when is_list(L) -> true;
+is_datatype({list, L})  when is_list(L) -> lists:all(fun is_datatype/1, L);     
+is_datatype({not_in, L}) when is_list(L) -> true;
+is_datatype(L) when is_list(L) -> lists:all(fun is_datatype/1, L); 
 is_datatype(T) -> error({invalid_datatype, T}).
 
 
