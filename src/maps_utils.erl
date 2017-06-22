@@ -110,11 +110,12 @@
                                     | {record, Name :: atom()}.                 
 
 -type compound()                ::  [base_datatype()]
-                                    | {list, [base_datatype()]}
                                     | {in, [base_datatype()]}
                                     | {not_in, [base_datatype()]}.
 
--type datatype()                ::  compound() | {list, compound()}.
+-type datatype()                ::  base_datatype()
+                                    | compound()
+                                    | {list, base_datatype() | compound()}.
 
 -type validator_fun()               ::  fun((term()) -> 
                                         {ok, any()} 
@@ -935,8 +936,8 @@ is_datatype(timeout) -> true;
 is_datatype(tuple) -> true;
 is_datatype({function, N}) when is_integer(N), N >= 0 -> true;
 is_datatype({record, Tag}) when is_atom(Tag) -> true;
-is_datatype({in, L}) when is_list(L) -> true;
-is_datatype({list, L})  when is_list(L) -> lists:all(fun is_datatype/1, L);     
+is_datatype({list, Type}) -> is_datatype(Type);  
+is_datatype({in, L}) when is_list(L) -> true;  
 is_datatype({not_in, L}) when is_list(L) -> true;
 is_datatype(L) when is_list(L) -> lists:all(fun is_datatype/1, L); 
 is_datatype(T) -> error({invalid_datatype, T}).
