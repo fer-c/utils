@@ -346,3 +346,47 @@ alias_2_test() ->
             }}
         )
     ).
+
+or_1_test() ->
+    Spec1 = #{
+        foo => #{required => true}
+    },
+    Spec2 = #{
+        bar => #{required => true}
+    },
+    Spec = #{
+        field => #{
+            datatype => map, 
+            required => true, 
+            validator => [Spec1, Spec2]
+        }
+    },
+    ?assertEqual(
+        #{field => #{bar => 1}},
+        maps_utils:validate(
+            #{field => #{bar => 1}},
+            Spec
+        )
+    ).
+
+or_2_test() ->
+    Spec1 = #{
+        foo => #{required => true}
+    },
+    Spec2 = #{
+        bar => #{required => true}
+    },
+    Spec = #{
+        field => #{
+            datatype => map, 
+            required => true, 
+            validator => [Spec1, Spec2]
+        }
+    },
+    ?assertEqual(
+        #{field => #{foo => 1}},
+        maps_utils:validate(
+            #{field => #{foo => 1}},
+            Spec
+        )
+    ).
