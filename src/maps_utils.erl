@@ -783,7 +783,7 @@ do_maybe_eval(K, V, #{validator := Fun}, Opts) when is_function(Fun, 1) ->
     end;
 
 do_maybe_eval(_, V, #{validator := Spec}, Opts) when is_map(V), is_map(Spec) ->
-    case validate(V, Spec, Opts) of
+    case do_validate(V, Spec, Opts) of
         {error, _} = Error ->
             Error;
         Val ->
