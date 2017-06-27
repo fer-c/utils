@@ -20,16 +20,16 @@
 
 
 %% =============================================================================
-%% VALIDATION 
+%% VALIDATION
 %% =============================================================================
 -define(ALLOW_NULL, true).
 -define(ALLOW_UNDEFINED, false).
 
 -define(INVALID_DATA_CODE, invalid_data).
--define(INVALID_DATA_MSG(N), 
+-define(INVALID_DATA_MSG(N),
     iolist_to_binary([<<"There were ">>, term_to_iolist(N), <<" validation errors.">>])
 ).
--define(INVALID_DATA_DESC(N), 
+-define(INVALID_DATA_DESC(N),
     iolist_to_binary([<<"There were ">>, term_to_iolist(N), <<" validation errors.">>])
 ).
 
@@ -46,7 +46,7 @@
 ).
 
 -define(ERROR_MISSING_REQUIRED_VALUE(K, M), #{
-    code => missing_required_value, 
+    code => missing_required_value,
     key => K,
     message => M,
     description => iolist_to_binary([
@@ -56,34 +56,34 @@
 
 -define(INVALID_DATATYPE_MSG(K, DT),
     iolist_to_binary([
-        <<"The value for '">>, term_to_iolist(K), 
+        <<"The value for '">>, term_to_iolist(K),
         <<"' is not a of type '">>, term_to_iolist(DT), <<"'">>
     ])
 ).
 
 -define(ERROR_INVALID_DATATYPE(K, DT, M), #{
-    code => invalid_datatype, 
+    code => invalid_datatype,
     key => K,
     message => M,
     description => iolist_to_binary([
-        <<"The value for '">>, term_to_iolist(K), 
+        <<"The value for '">>, term_to_iolist(K),
         <<"' is not a of type '">>, term_to_iolist(DT), <<"'.">>
     ])
 }).
 
--define(INVALID_VALUE_MSG(K, V), 
+-define(INVALID_VALUE_MSG(K, V),
     iolist_to_binary([
-        <<"The value '">>, term_to_iolist(V), 
+        <<"The value '">>, term_to_iolist(V),
         <<"' for '">>, term_to_iolist(K), <<"' is not valid.">>])
 ).
 
 -define(ERROR_INVALID_VALUE(K, V, M), #{
-    code => invalid_value, 
+    code => invalid_value,
     key => K,
     value => V,
     message => M,
     description => iolist_to_binary([
-        <<"The value '">>, term_to_iolist(V), 
+        <<"The value '">>, term_to_iolist(V),
         <<"' for '">>, term_to_iolist(K), <<"' did not pass the validator.">>])
 }).
 
@@ -100,9 +100,9 @@
                                     | tuple
                                     | map
                                     | list
-                                    | string 
-                                    | {record, Name :: atom()}                  
-                                    
+                                    | string
+                                    | {record, Name :: atom()}
+
                                     | function
                                     | {function, N :: non_neg_integer()}
                                     | pid | reference | port.
@@ -114,10 +114,10 @@
 
 -type datatype()                ::  compound() | {list, compound()}.
 
--type validator_fun()               ::  fun((term()) -> 
-                                        {ok, any()} 
+-type validator_fun()               ::  fun((term()) ->
+                                        {ok, any()}
                                         | {merge, fun((map()) -> map())}
-                                        | boolean() 
+                                        | boolean()
                                         | error
                                     ).
 
@@ -134,7 +134,7 @@
                                         allow_undefined => boolean() | remove,
                                         allow_null => boolean() | remove,
                                         default => term(), %% only if required
-                                        datatype => datatype() | [datatype()], 
+                                        datatype => datatype() | [datatype()],
                                         validator => validator()
                                     }.
 -type map_spec()                ::  #{term() => entry_spec()}.
@@ -150,7 +150,7 @@
 }.
 
 -type validation_opts() ::  #{
-    atomic => boolean(), 
+    atomic => boolean(),
     labels => binary | atom | existing_atom | attempt_atom,
     error_code => atom(),
     error_formatters => formatters()
@@ -191,7 +191,7 @@
 
 %% -----------------------------------------------------------------------------
 %% @doc
-%% A wrapper for {@link maps:get/2} that supports key paths in the form 
+%% A wrapper for {@link maps:get/2} that supports key paths in the form
 %% of a list of keys.
 %%
 %% Example:
@@ -210,7 +210,7 @@ get_path(Path, Map) ->
 %% @doc
 %% @end
 %% -----------------------------------------------------------------------------
--spec get_path(Path :: path(), Map :: map(), Default :: term()) -> 
+-spec get_path(Path :: path(), Map :: map(), Default :: term()) ->
     Value :: term().
 
 get_path([], _, _) ->
@@ -226,7 +226,7 @@ get_path(Path, Map, Default)  when is_list(Path) ->
 %% @end
 %% -----------------------------------------------------------------------------
 -spec put_path(Key :: [term()], Value :: term(), Map :: map()) -> map().
- 
+
 put_path([], _, _) ->
      error({badkey, []});
 
@@ -240,7 +240,7 @@ put_path(Path, Value, Map) when is_list(Path) ->
 %% @end
 %% -----------------------------------------------------------------------------
 -spec remove_path(Key :: path(), Map :: map()) -> map().
- 
+
 remove_path([], _) ->
      error({badkey, []});
 
@@ -382,9 +382,9 @@ validate(Map0, Spec) when is_map(Spec) ->
 %% -----------------------------------------------------------------------------
 %% @doc
 %% Returns a new map.
-%% If any validation failes ir will do so with an exception with Reason of 
+%% If any validation failes ir will do so with an exception with Reason of
 %% type error_map:error_map().
-%% 
+%%
 %% For example:
 %% <code>
 %% #{code => invalida_data,
@@ -408,35 +408,35 @@ validate(Map0, Spec) when is_map(Spec) ->
 %%
 %% Error codes
 %% * invalid_data - the general error code use when aggregating multiple errors
-%% * missing_required_value -  a value for a required key was not found (and no default 
+%% * missing_required_value -  a value for a required key was not found (and no default
 %% value was provided)
 %% * invalid_datatype - the value provided does not match the datatype specified
-%% * invalid_value - the value failed the validator provided 
+%% * invalid_value - the value failed the validator provided
 %% @end
 %% -----------------------------------------------------------------------------
--spec validate(Map :: map(), Spec :: map_spec(), validation_opts()) -> 
+-spec validate(Map :: map(), Spec :: map_spec(), validation_opts()) ->
     NewMap :: map().
 
 validate(Map0, Spec, Opts) when is_map(Spec), is_map(Opts) ->
     case do_validate(Map0, Spec, Opts) of
         {error, Reason} ->
             error(Reason);
-        Val -> 
+        Val ->
             Val
     end.
 
 
 %% @private
 do_validate(Map0, Spec, Opts) when is_map(Spec), is_map(Opts) ->
-    Err0 = case maps:get(atomic, Opts, true) of 
+    Err0 = case maps:get(atomic, Opts, true) of
         true -> [];
-         _ -> false 
+         _ -> false
     end,
 
     Res =  maps:fold(fun validate_fold_fun/3, {Map0, #{}, Err0, Opts}, Spec),
-    
-    case Res of 
-        {Map0, Map1, Err0, _} -> 
+
+    case Res of
+        {Map0, Map1, Err0, _} ->
             Map1;
         {Map0, _, [E], _} ->
             {error, E};
@@ -471,9 +471,9 @@ do_get_path(Key, Map, Default) ->
 %% @private
 maybe_get(Key, Map, Default) ->
     case maps:get(Key, Map, Default) of
-        '$badkey' -> 
+        '$badkey' ->
             error({badkey, Key});
-        Value -> 
+        Value ->
             Value
     end.
 
@@ -544,7 +544,7 @@ b2o(Term, atom) ->
 b2o(Term, existing_atom) ->
     binary_to_existing_atom(Term, utf8);
 b2o(Term, attempt_atom) ->
-    try 
+    try
         binary_to_existing_atom(Term, utf8)
     catch
         _:_ ->
@@ -559,7 +559,7 @@ l2o(Term, atom) ->
 l2o(Term, existing_atom) ->
     list_to_existing_atom(Term);
 l2o(Term, attempt_atom) ->
-    try 
+    try
         list_to_existing_atom(Term)
     catch
         _:_ ->
@@ -598,7 +598,7 @@ maybe_rename_key(K, _, _) ->
 
 %% @private
 validate_fold_fun(K, KSpec, {In, Out, Err, Opts}) when is_map(KSpec) ->
-    
+
     case validate_key(K, In, KSpec, Opts) of
         {ok, Val} ->
             %% Maybe we rename the key
@@ -610,14 +610,14 @@ validate_fold_fun(K, KSpec, {In, Out, Err, Opts}) when is_map(KSpec) ->
             NewKey = maps:get(key, KSpec, K),
             Val = Fun(maps:get(NewKey, Out, undefined)),
             {In, maps:put(NewKey, Val, Out), Err, Opts};
-        
+
         {error, Reason} when is_list(Err) ->
             %% atomic is true
             {In, Out, [Reason|Err], Opts};
 
         {error, Reason} ->
             error(Reason);
-        
+
         remove ->
             {In, maps:without([K], Out), Err, Opts};
 
@@ -641,17 +641,17 @@ validate_key(K, In, KSpec, Opts) ->
             NewKSpec = maps:merge(
                 #{allow_undefined => ?ALLOW_UNDEFINED}, KSpec),
             maybe_allow(K, undefined, NewKSpec, Opts);
-        
+
         {ok, V} ->
             case is_valid_datatype(V, KSpec) of
-                true -> 
+                true ->
                     maybe_eval(K, V, KSpec, Opts);
                 false ->
                     Reason = invalid_datatype_error(
                         K, maps:get(datatype, KSpec), Opts),
                     {error, Reason}
             end;
-        
+
         error ->
             maybe_get_default(K, KSpec, Opts)
     end.
@@ -682,13 +682,13 @@ maybe_allow(K, undefined, #{allow_undefined := false} = KSpec, Opts) ->
 
 
 %% @private
-maybe_get_default(_, #{required := true, default := V}, _) -> 
+maybe_get_default(_, #{required := true, default := V}, _) ->
     {ok, V};
 
-maybe_get_default(K, #{required := true}, Opts) -> 
+maybe_get_default(K, #{required := true}, Opts) ->
     {error, missing_required_value_error(K, Opts)};
 
-maybe_get_default(_, _, _) -> 
+maybe_get_default(_, _, _) ->
     not_found.
 
 
@@ -716,14 +716,14 @@ when is_list(V), is_function(Fun, 1) ->
         end
     end,
 
-    try 
+    try
         {ok, lists:reverse(lists:foldl(Inner, [], V))}
     catch
         throw:Error when is_map(Error) ->
             {error, Error}
     end;
 
-do_maybe_eval(K, V, #{validator := {list, Spec}}, Opts) 
+do_maybe_eval(K, V, #{validator := {list, Spec}}, Opts)
 when is_list(V), is_map(Spec) ->
 
     Inner = fun
@@ -737,8 +737,8 @@ when is_list(V), is_map(Spec) ->
         (_, _) ->
             throw(invalid_value_error(K, V, Opts))
     end,
-  
-    try 
+
+    try
         {ok, lists:reverse(lists:foldl(Inner, [], V))}
     catch
         throw:Error when is_map(Error) ->
@@ -747,26 +747,40 @@ when is_list(V), is_map(Spec) ->
 
 do_maybe_eval(K, V, #{validator := Fun}, Opts) when is_function(Fun, 1) ->
     case Fun(V) of
-        {ok, _} = OK -> 
+        {ok, _} = OK ->
             OK;
-        {merge, Merge} = OK when is_function(Merge, 1) -> 
+        {merge, Merge} = OK when is_function(Merge, 1) ->
             OK;
-        true -> 
+        true ->
             {ok, V};
-        false -> 
+        false ->
             {error, invalid_value_error(K, V, Opts)};
-        error -> 
+        error ->
             {error, invalid_value_error(K, V, Opts)};
         _ ->
             error({invalid_validator_return_value, K})
     end;
 
 do_maybe_eval(_, V, #{validator := Spec}, Opts) when is_map(V), is_map(Spec) ->
-    case validate(V, Spec, Opts) of
+    case do_validate(V, Spec, Opts) of
         {error, _} = Error ->
             Error;
         Val ->
             {ok, Val}
+    end;
+
+do_maybe_eval(K, V, #{validator := Spec}, Opts) when is_map(V), is_list(Spec) ->
+    Vals = lists:filtermap(fun(S) ->
+                case do_validate(V, S, Opts) of
+                    {error, _} -> false;
+                    Val -> {true, Val}
+                end
+            end, Spec),
+    case Vals of
+        [Val | _] ->
+            {ok, Val};
+        _ ->
+            {error, invalid_datatype_error(K, opts, Opts)}
     end;
 
 do_maybe_eval(K, _, #{validator := Spec}, Opts) when is_map(Spec) ->
@@ -787,7 +801,7 @@ is_valid_datatype(_, #{datatype := []}) ->
     false;
 
 is_valid_datatype(V, #{datatype := [H|T]}) ->
-    is_valid_datatype(V, #{datatype => H}) 
+    is_valid_datatype(V, #{datatype => H})
     orelse is_valid_datatype(V, #{datatype => T});
 
 is_valid_datatype(V, #{datatype := boolean}) when is_boolean(V) ->
@@ -797,17 +811,17 @@ is_valid_datatype(V, #{datatype := atom}) when is_atom(V) ->
     true;
 
 is_valid_datatype(V, #{datatype := integer}) when is_integer(V) ->
-    true;   
+    true;
 
 is_valid_datatype(V, #{datatype := pos_integer})
 when is_integer(V) andalso V > 0 ->
     true;
 
-is_valid_datatype(V, #{datatype := neg_integer}) 
+is_valid_datatype(V, #{datatype := neg_integer})
 when is_integer(V) andalso V < 0 ->
     true;
 
-is_valid_datatype(V, #{datatype := timeout}) 
+is_valid_datatype(V, #{datatype := timeout})
 when V =:= infinity orelse (is_integer(V) andalso V > 0) ->
     true;
 
@@ -888,7 +902,7 @@ term_to_iolist(Term) when is_binary(Term) ->
 
 term_to_iolist(Term) when is_list(Term) ->
     Term;
-    
+
 term_to_iolist(Term) ->
     io_lib:format("~p", [Term]).
 
@@ -910,7 +924,7 @@ is_datatype(tuple) -> true;
 is_datatype({in, L}) when is_list(L) -> true;
 is_datatype({not_in, L}) when is_list(L) -> true;
 is_datatype({record, Tag}) when is_atom(Tag) -> true;
-is_datatype({list, T}) -> is_datatype(T);                 
+is_datatype({list, T}) -> is_datatype(T);
 is_datatype(T) -> error({invalid_datatype, T}).
 
 
@@ -942,7 +956,7 @@ invalid_datatype_error(K, DT, _) ->
     ?ERROR_INVALID_DATATYPE(K, DT, ?INVALID_DATATYPE_MSG(K, DT)).
 
 
-%% @private    
+%% @private
 invalid_value_error(K, V, #{error_formatters := #{invalid_value := Fun}}) ->
     ?ERROR_INVALID_VALUE(K, V, Fun(K, V));
 
