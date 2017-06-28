@@ -99,15 +99,15 @@
                                     | neg_integer
                                     | non_neg_integer
                                     | number
-                                    | pid 
+                                    | pid
                                     | port
                                     | pos_integer
-                                    | reference 
-                                    | string 
+                                    | reference
+                                    | string
                                     | timeout
                                     | tuple
                                     | {function, N :: non_neg_integer()}
-                                    | {record, Name :: atom()}.                 
+                                    | {record, Name :: atom()}.
 
 -type compound()                ::  [base_datatype()]
                                     | {in, [base_datatype()]}
@@ -749,7 +749,7 @@ when is_list(V), is_map(Spec) ->
 
     Inner = fun
         (E, Acc) when is_map(E) ->
-            case validate(E, Spec) of
+            case do_validate(E, Spec, Opts) of
                 {error, Reason} ->
                     throw(Reason);
                 Val ->
@@ -842,11 +842,11 @@ is_valid_datatype(V, #{datatype := neg_integer})
 when is_integer(V) andalso V < 0 ->
     true;
 
-is_valid_datatype(V, #{datatype := non_neg_integer}) 
+is_valid_datatype(V, #{datatype := non_neg_integer})
 when is_integer(V) andalso V >= 0 ->
     true;
 
-is_valid_datatype(V, #{datatype := timeout}) 
+is_valid_datatype(V, #{datatype := timeout})
 when V =:= infinity orelse (is_integer(V) andalso V > 0) ->
     true;
 
@@ -950,10 +950,10 @@ is_datatype(timeout) -> true;
 is_datatype(tuple) -> true;
 is_datatype({function, N}) when is_integer(N), N >= 0 -> true;
 is_datatype({record, Tag}) when is_atom(Tag) -> true;
-is_datatype({list, Type}) -> is_datatype(Type);  
-is_datatype({in, L}) when is_list(L) -> true;  
+is_datatype({list, Type}) -> is_datatype(Type);
+is_datatype({in, L}) when is_list(L) -> true;
 is_datatype({not_in, L}) when is_list(L) -> true;
-is_datatype(L) when is_list(L) -> lists:all(fun is_datatype/1, L); 
+is_datatype(L) when is_list(L) -> lists:all(fun is_datatype/1, L);
 is_datatype(T) -> error({invalid_datatype, T}).
 
 
