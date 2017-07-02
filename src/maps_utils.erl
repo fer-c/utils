@@ -749,7 +749,7 @@ when is_list(V), is_map(Spec) ->
 
     Inner = fun
         (E, Acc) when is_map(E) ->
-            case validate(E, Spec) of
+            case do_validate(E, Spec, Opts) of
                 {error, Reason} ->
                     throw(Reason);
                 Val ->
@@ -783,7 +783,7 @@ do_maybe_eval(K, V, #{validator := Fun}, Opts) when is_function(Fun, 1) ->
     end;
 
 do_maybe_eval(_, V, #{validator := Spec}, Opts) when is_map(V), is_map(Spec) ->
-    case validate(V, Spec, Opts) of
+    case do_validate(V, Spec, Opts) of
         {error, _} = Error ->
             Error;
         Val ->
