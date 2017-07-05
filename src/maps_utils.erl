@@ -137,7 +137,7 @@
                                         required => boolean(),
                                         allow_undefined => boolean() | remove,
                                         allow_null => boolean() | remove,
-                                        default => term(), %% only if required
+                                        default => term() | fun(() -> any()), %% only if required
                                         datatype => datatype() | [datatype()],
                                         validator => validator()
                                     }.
@@ -703,6 +703,10 @@ maybe_allow(K, undefined, #{allow_undefined := false} = KSpec, Opts) ->
 
 
 %% @private
+maybe_get_default(_, #{required := true, default := F}, _) 
+when is_function(F, 1) ->
+    F();
+
 maybe_get_default(_, #{required := true, default := V}, _) ->
     {ok, V};
 
