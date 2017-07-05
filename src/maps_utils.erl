@@ -704,8 +704,8 @@ maybe_allow(K, undefined, #{allow_undefined := false} = KSpec, Opts) ->
 
 %% @private
 maybe_get_default(_, #{required := true, default := F}, _) 
-when is_function(F, 1) ->
-    F();
+when is_function(F, 0) ->
+    {ok, F()};
 
 maybe_get_default(_, #{required := true, default := V}, _) ->
     {ok, V};

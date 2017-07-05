@@ -390,3 +390,19 @@ or_2_test() ->
             Spec
         )
     ).
+
+default_fun_test() ->
+    Spec = #{
+        field => #{
+            datatype => integer, 
+            required => true, 
+            default => fun() -> 1 end
+        }
+    },
+    ?assertEqual(
+        #{field => 1},
+        maps_utils:validate(
+            #{},
+            Spec
+        )
+    ).
