@@ -475,7 +475,7 @@ validate_update(Map0, Changes, Spec, Opts) when is_map(Changes), is_map(Spec), i
     maps_all(fun(K, V) -> validate_update_key(K, V, Map0, Changes, Opts) end, Spec).
 
 maps_all(Fun, Map) when is_function(Fun, 2), is_map(Map) ->
-    maps:fold(fun(K, V, Accum) -> Accum andalso Fun(K, V) end, true);
+    maps:fold(fun(K, V, Accum) -> Accum andalso Fun(K, V) end, true, Map);
 
 maps_all(Fun, Map) ->
     error(badarg, [Fun, Map]).
