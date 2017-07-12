@@ -468,17 +468,27 @@ do_validate(Map0, Spec, Opts) when is_map(Spec), is_map(Opts) ->
 %%
 %% @end
 %% -----------------------------------------------------------------------------
--spec validate_update(Map :: map(), Map :: map(), Spec :: map_spec(), validation_opts()) ->
-    boolean().
+-spec validate_update(Map :: map(), Changes :: map(), Spec :: map_spec(), validation_opts()) ->
+    no_return().
 
 validate_update(Map0, Changes, Spec, Opts) when is_map(Changes), is_map(Spec), is_map(Opts) ->
-    maps_all(fun(K, V) -> validate_update_key(K, V, Map0, Changes, Opts) end, Spec).
+    Res = validate_update_error_list(Map0, Changes, Spec, Opts),
+    case Res of
+        [] ->
+            undefined;
+        [E] ->
+            error(E);
+        L ->
+            case maps:get(atomic, Opts, true) of
+                true -> error(lists:last(L));
+                _ ->  error(invalid_data_error(L, Opts))
+            end
+    end.
 
-maps_all(Fun, Map) when is_function(Fun, 2), is_map(Map) ->
-    maps:fold(fun(K, V, Accum) -> Accum andalso Fun(K, V) end, true, Map);
+validate_update_error_list(Map0, Changes, Spec, Opts) when is_map(Changes), is_map(Spec), is_map(Opts) ->
+    maps:fold(fun(K, V, Accum) -> Accum++validate_update_key(K, V, Map0, Changes, Opts) end, [], Spec).
 
-maps_all(Fun, Map) ->
-    error(badarg, [Fun, Map]).
+
 
 
 
@@ -702,9 +712,9 @@ validate_update_key(K, KSpec, In, Changes, Opts) ->
         {ok, VChange} ->
             case find(K, In, KSpec) of
                 {ok, V} -> maybe_eval_update(K, V, KSpec, VChange, Opts);
-                _ -> true
+                _ -> []
             end;
-        _ -> true
+        _ -> []
     end.
 
 
@@ -754,34 +764,34 @@ maybe_get_default(_, _, _) ->
 
 
 %% @private
-maybe_eval_update(K, V, #{update_validator := Fun}, Change, _) when is_function(Fun, 2) ->
+maybe_eval_update(K, V, #{update_validator := Fun}, Change, Opts) when is_function(Fun, 2) ->
     case Fun(V, Change) of
         true ->
-            true;
+            [];
         false ->
-            false;
+            [{error, invalid_value_error(K, V, Opts)}];
         _ ->
             error({invalid_validator_return_value, K})
     end;
 
-maybe_eval_update(_, V, #{validator := {list, Spec}}, Changes, Opts)
+maybe_eval_update(K, V, #{validator := {list, Spec}}, Changes, Opts)
 when is_list(V), is_map(Spec) ->
     Inner = fun
         (E) when is_map(E) ->
-            validate_update(E, Changes, Spec, Opts);
+            validate_update_error_list(E, Changes, Spec, Opts);
         (_) ->
-            false
+            {error, invalid_value_error(K, V, Opts)}
     end,
-    lists:all(Inner, V);
+    lists:foldl(fun (E, Accum) -> Accum++Inner(E) end, [], V);
 
 maybe_eval_update(_, V, #{validator := Spec}, Changes, Opts) when is_map(V), is_map(Spec) ->
-    validate_update(V, Changes, Spec, Opts);
+    validate_update_error_list(V, Changes, Spec, Opts);
 
 maybe_eval_update(_, V, #{validator := Spec}, Changes, Opts) when is_map(V), is_list(Spec) ->
-    lists:any(fun(S) -> validate_update(V, Changes, S, Opts) end, Spec);
+    lists:foldl(fun (S, Accum) -> Accum++validate_update_error_list(V, Changes, S, Opts) end, [], Spec);
 
 maybe_eval_update(_, _, _, _, _) ->
-    true.
+    [].
 
 %% @private
 maybe_eval(K, V, KSpec, Opts) ->
