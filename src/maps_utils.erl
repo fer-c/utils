@@ -779,16 +779,6 @@ maybe_eval_update(K, V, #{update_validator := Fun}, Change, Opts) when is_functi
             error({invalid_validator_return_value, K})
     end;
 
-%% maybe_eval_update(K, V, #{validator := {list, Spec}}, Changes, Opts)
-%% when is_list(V), is_map(Spec) ->
-%%     Inner = fun
-%%         (E) when is_map(E) ->
-%%             validate_update_error_list(E, Changes, Spec, Opts);
-%%         (_) ->
-%%             [{error, invalid_value_error(K, V, Opts)}]
-%%     end,
-%%     lists:foldl(fun (E, Accum) -> Accum++Inner(E) end, [], V);
-
 maybe_eval_update(_, V, #{validator := Spec}, Changes, Opts) when is_map(V), is_map(Spec) ->
     validate_update_error_list(V, Changes, Spec, Opts);
 
