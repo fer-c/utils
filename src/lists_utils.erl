@@ -2,7 +2,7 @@
 
 
 
-
+-export([shuffle/1]).
 -export([round_robin/2]).
 -export([rotate_right/2]).
 -export([rotate_right_with/2]).
@@ -13,6 +13,17 @@
 %% =============================================================================
 %% API
 %% =============================================================================
+
+
+%% -----------------------------------------------------------------------------
+%% @doc
+%% From https://erlangcentral.org/wiki/index.php/RandomShuffle
+%% @end
+%% -----------------------------------------------------------------------------
+shuffle(List) ->
+    %% Determine the log n portion then randomize the list.
+    randomize(round(math:log(length(List)) + 0.5), List).
+
 
 
 %% -----------------------------------------------------------------------------
@@ -106,3 +117,29 @@ rotate_right_with([H|T], Pred, Acc) ->
 
 rotate_right_with([], _, Acc) ->
     lists:reverse(Acc).
+
+
+
+
+
+%% =============================================================================
+%% PRIVATE
+%% =============================================================================
+
+
+%% @private
+randomize(1, List) ->
+    randomize(List);
+
+randomize(T, List) ->
+    lists:foldl(
+        fun(_E, Acc) -> randomize(Acc) end, 
+        randomize(List), 
+        lists:seq(1, (T - 1))).
+
+
+%% @private
+randomize(List) ->
+    D = lists:map(fun(A) -> {rand:uniform(), A} end, List),
+    {_, D1} = lists:unzip(lists:keysort(1, D)),
+    D1.
