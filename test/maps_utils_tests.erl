@@ -471,7 +471,7 @@ update_validator_nested_test() ->
         ok,
         maps_utils:validate_update(
             #{x => #{y => 1}}, #{x => #{y => 2}},
-            #{x => #{validator => SubSpec}}
+            #{x => #{update_validator => SubSpec}}
         )
     ).
 
@@ -482,7 +482,7 @@ update_validator_nested_2_test() ->
         #{code := invalid_value},
         maps_utils:validate_update(
             #{x => #{y => 1}}, #{x => #{y => 2}},
-            #{x => #{validator => [SubSpec, SubSpec2]}}
+            #{x => #{update_validator => [SubSpec, SubSpec2]}}
         )
     ).
 
