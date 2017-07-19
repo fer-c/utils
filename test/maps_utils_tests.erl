@@ -391,6 +391,34 @@ or_2_test() ->
         )
     ).
 
+in_test() ->
+    Spec = #{
+        field => #{
+            datatype => {in, [1,2,3]}
+        }
+    },
+    ?assertEqual(
+        #{field => 1},
+        maps_utils:validate(
+            #{field => 1},
+            Spec
+        )
+    ).
+
+all_in_test() ->
+    Spec = #{
+        field => #{
+            datatype => {list, {in, [1,2,3]}}
+        }
+    },
+    ?assertEqual(
+        #{field => [1,2,3]},
+        maps_utils:validate(
+            #{field => [1,2,3]},
+            Spec
+        )
+    ).
+
 default_fun_test() ->
     Spec = #{
         field => #{
