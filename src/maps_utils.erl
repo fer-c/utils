@@ -955,7 +955,7 @@ is_datatype(tuple) -> true;
 is_datatype({function, N}) when is_integer(N), N >= 0 -> true;
 is_datatype({record, Tag}) when is_atom(Tag) -> true;
 is_datatype({in, L}) when is_list(L) -> true;
-is_datatype({list, L})  when is_list(L) -> lists:all(fun is_datatype/1, L);     
+is_datatype({list, X}) -> is_datatype(X);     
 is_datatype({not_in, L}) when is_list(L) -> true;
 is_datatype(L) when is_list(L) -> lists:all(fun is_datatype/1, L); 
 is_datatype(T) -> error({invalid_datatype, T}).
