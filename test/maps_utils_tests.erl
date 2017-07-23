@@ -448,3 +448,100 @@ default_fun_test() ->
             Spec
         )
     ).
+
+update_validator_1_test() ->
+    ?assertError(
+        #{code := invalid_value},
+        maps_utils:validate_update(
+            #{x => 1}, #{x => 2},
+            #{x => #{update_validator => fun (_, _) -> false end}}
+        )
+    ).
+
+update_transform_1_test() ->
+    ?assertError(
+        {invalid_validator_return_value, x},
+        maps_utils:validate_update(
+            #{x => 1}, #{x => 1},
+            #{x => #{update_validator => fun(X, _) -> X*2 end}}
+        )
+    ).
+
+update_validator_2_test() ->
+    ?assertEqual(
+        ok,
+        maps_utils:validate_update(
+            #{x => 1}, #{x => 2},
+            #{x => #{update_validator => fun(_, _) -> true end}}
+        )
+    ).
+
+update_validator_3_test() ->
+    ?assertError(
+        #{code := invalid_value},
+        maps_utils:validate_update(
+            #{x => 1, y => 2}, #{x => 2, y =>3},
+            #{x => #{update_validator => fun (_, _) -> false end},
+              y => #{update_validator => fun (_, _) -> false end}}
+        )
+    ).
+
+update_validator_multiple_test() ->
+    ?assertError(
+        #{code := invalid_data},
+        maps_utils:validate_update(
+            #{x => 1, y => 2}, #{x => 2, y =>3},
+            #{x => #{update_validator => fun (_, _) -> false end},
+              y => #{update_validator => fun (_, _) -> false end}},
+            #{atomic => false}
+        )
+    ).
+
+update_validator_list_test() ->
+    SubSpec = #{y => #{update_validator => fun (_, _) -> false end}},
+    ?assertEqual(
+        ok,
+        maps_utils:validate_update(
+            #{x => [#{y => 1}]}, #{x => [#{y => 2}]},
+            #{x => #{validator => {list, SubSpec}}}
+        )
+    ).
+
+update_validator_nested_test() ->
+    SubSpec = #{y => #{update_validator => fun (_, _) -> true end}},
+    ?assertEqual(
+        ok,
+        maps_utils:validate_update(
+            #{x => #{y => 1}}, #{x => #{y => 2}},
+            #{x => #{update_validator => SubSpec}}
+        )
+    ).
+
+update_validator_nested_2_test() ->
+    SubSpec = #{y => #{update_validator => fun (_, _) -> true end}},
+    SubSpec2 = #{y => #{update_validator => fun (_, _) -> false end}},
+    ?assertError(
+        #{code := invalid_value},
+        maps_utils:validate_update(
+            #{x => #{y => 1}}, #{x => #{y => 2}},
+            #{x => #{update_validator => [SubSpec, SubSpec2]}}
+        )
+    ).
+
+update_validator_nochange_test() ->
+    ?assertEqual(
+        ok,
+        maps_utils:validate_update(
+            #{x => 1}, #{},
+            #{x => #{}}
+        )
+    ).
+
+update_validator_nospec_test() ->
+    ?assertEqual(
+        ok,
+        maps_utils:validate_update(
+            #{}, #{x => 2},
+            #{x => #{}}
+        )
+    ).
