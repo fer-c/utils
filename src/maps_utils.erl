@@ -307,12 +307,16 @@ without_paths(Ps, M) ->
 %% -----------------------------------------------------------------------------
 %% @doc
 %% This function appends a new Value to the current list of values associated
-%% with Key. An exception is generated if the initial value
-%% associated with Key is not a list of values.
+%% with Key.
 %% @end
 %% -----------------------------------------------------------------------------
 append(Key, Value, Map) ->
-    append(Key, [Value], Map).
+    case maps:get(Key, Map, []) of
+        Values when is_list(Values) ->
+            maps:update(Key, [Value|Values], Map);
+        Prev ->
+            maps:put(Key, [Value, Prev], Map)
+    end.
 
 
 %% -----------------------------------------------------------------------------
