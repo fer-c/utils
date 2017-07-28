@@ -545,3 +545,275 @@ update_validator_nospec_test() ->
             #{x => #{}}
         )
     ).
+
+get_path_empty_test() ->
+    ?assertError(
+        {badkey, []},
+        maps_utils:get_path([], #{}, undefined)
+    ).
+
+get_path_nested_test() ->
+    Map = #{ field => #{ field => pepe}},
+    ?assertEqual(
+        pepe,
+        maps_utils:get_path([field, field], Map, undefined)
+    ).
+
+get_path_default_test() ->
+    Map = #{ },
+    ?assertEqual(
+        undefined,
+        maps_utils:get_path([field, field], Map, undefined)
+    ).
+
+put_path_empty_test() ->
+    ?assertError(
+        {badkey, []},
+        maps_utils:put_path([], undefined, #{})
+    ).
+
+put_path_invalid_test() ->
+    ?assertError(
+        {badmap, []},
+        maps_utils:put_path([[field], field], undefined, [])
+    ).
+
+put_path_nested_test() ->
+    Map = #{ field => #{ field => pepe}},
+    ?assertEqual(
+        Map,
+        maps_utils:put_path([field, field], pepe, #{})
+    ).
+
+remove_path_empty_test() ->
+    ?assertError(
+        {badkey, []},
+        maps_utils:remove_path([], #{})
+    ).
+
+remove_path_nested_test() ->
+    Map = #{ field => #{ field => pepe}},
+    ?assertEqual(
+        #{field => #{}},
+        maps_utils:remove_path([field, field], Map)
+    ).
+
+remove_path_invalid_test() ->
+    ?assertError(
+        {badmap, []},
+        maps_utils:remove_path([[field], field], [])
+    ).
+
+with_paths_empty_test() ->
+    ?assertEqual(
+        #{},
+        maps_utils:with_paths([], #{})
+    ).
+
+with_paths_2_test() ->
+    Map = #{ field => #{ field => pepe}, field2 => hola, field3 => nada},
+    ?assertEqual(
+        maps:remove(field3, Map),
+        maps_utils:with_paths([[field, field], [field2]], Map)
+    ).
+
+with_paths_invalid_type_test() ->
+    ?assertError(
+        badarg,
+        maps_utils:with_paths(#{}, #{})
+    ).
+
+without_paths_empty_test() ->
+    Map = #{ field => #{ field => pepe}, field2 => hola, field3 => nada},
+    ?assertEqual(
+        Map,
+        maps_utils:without_paths([], Map)
+    ).
+
+without_paths_2_test() ->
+    Map = #{ field => #{ field => pepe}, field2 => hola, field3 => nada},
+    ?assertEqual(
+        #{field => #{}, field3 => nada},
+        maps_utils:without_paths([[field, field], [field2]], Map)
+    ).
+
+without_paths_invalid_type_test() ->
+    ?assertError(
+        badarg,
+        maps_utils:without_paths(#{}, #{})
+    ).
+
+append_path_empty_test() ->
+    ?assertError(
+        {badkey, []},
+        maps_utils:append_path([], hola, #{})
+    ).
+
+append_path_test() ->
+    Map = #{ field => #{ field => []}},
+    ?assertEqual(
+        #{ field => #{ field => [pepe]}},
+        maps_utils:append_path([field, field], pepe, Map)
+    ).
+
+append_path_not_list_test() ->
+    Map = #{ field => #{ field => pepe}},
+    ?assertError(
+        {badlist, pepe},
+        maps_utils:append_path([field, field], pepe, Map)
+    ).
+
+append_list_not_list_test() ->
+    Map = #{ field => [] },
+    ?assertError(
+        {badarg, _},
+        maps_utils:append_list(field, pepe, Map)
+    ).
+
+append_list_path_empty_list_test() ->
+    ?assertError(
+        {badkey, []},
+        maps_utils:append_list_path([], undefined, #{})
+    ).
+
+append_list_path_test() ->
+    Map = #{ field => #{field => []}},
+    ?assertEqual(
+        #{ field => #{ field => [pepe, juan]}},
+        maps_utils:append_list_path([field, field], [pepe, juan], Map)
+    ).
+
+append_list_path_invalid_test() ->
+    ?assertError(
+        {badmap, []},
+        maps_utils:append_list_path([[field], field], undefined, [])
+    ).
+
+collect_test() ->
+    Map = #{ field => #{field => pepe}, field2 => pepito},
+    ?assertEqual(
+        [#{field => pepe}, pepito],
+        maps_utils:collect([field, asdf, field2], Map)
+    ).
+
+split_test() ->
+    Map = #{ field => #{field => pepe}, field2 => pepito},
+    ?assertEqual(
+        { #{field2 => pepito}, #{ field => #{field => pepe}} },
+        maps_utils:split([field2], Map)
+    ).
+
+validate_atomic_test() ->
+    ?assertError(
+        #{ code := invalid_datatype},
+        maps_utils:validate(
+            #{x => 1, y => 1}, 
+            #{x => #{datatype => binary}, y => #{datatype => binary}},
+            #{atomic => false}
+        )
+    ).
+
+validate_two_errors_test() ->
+    ?assertError(
+        #{ code := invalid_data, errors := [_X, _Y] },
+        maps_utils:validate(
+            #{x => 1, y => 1}, 
+            #{x => #{datatype => binary}, y => #{datatype => binary}}
+        )
+    ).
+
+rename_key_test() ->
+    ?assertEqual(
+        #{x => 1},
+        maps_utils:validate(
+            #{<<"x">> => 1},
+            #{<<"x">> => #{key => x}}
+        )
+    ).
+
+rename_key_labels_bin_to_atom_test() ->
+    ?assertEqual(
+        #{x => 1},
+        maps_utils:validate(
+            #{<<"x">> => 1},
+            #{<<"x">> => #{}},
+            #{labels => atom}
+        )
+    ).
+
+validate_fun_list_test() ->
+    ?assertEqual(
+        #{x => [1]},
+        maps_utils:validate(
+            #{x => [1]},
+            #{x => #{validator => {list, fun(X) -> X>0 end}}}
+        )
+    ).
+
+validate_fun_list_error_test() ->
+    ?assertError(
+        #{code := invalid_datatype},
+        maps_utils:validate(
+            #{x => 1},
+            #{x => #{validator => {list, fun(X) -> X>0 end}}}
+        )
+    ).
+
+validate_list_spec_error_test() ->
+    SubSpec = #{y => #{datatype => binary}},
+    ?assertError(
+        #{code := invalid_datatype},
+        maps_utils:validate(
+            #{x => [#{y => 1}]},
+            #{x => #{validator => {list, SubSpec}}}
+        )
+    ).
+
+validate_nested_spec_error_test() ->
+    SubSpec = #{y => #{datatype => binary}},
+    ?assertError(
+        #{code := invalid_datatype},
+        maps_utils:validate(
+            #{x => #{y => 1}},
+            #{x => #{validator => SubSpec}}
+        )
+    ).
+
+validate_mutiple_spec_error_test() ->
+    SubSpec = #{y => #{datatype => binary}},
+    SubSpec2 = #{y => #{datatype => integer}},
+    ?assertError(
+        #{code := invalid_datatype},
+        maps_utils:validate(
+            #{x => #{y => "asdasd"}},
+            #{x => #{validator => [SubSpec, SubSpec2]}}
+        )
+    ).
+
+validate_not_in_datatype_test() ->
+    ?assertError(
+        #{code := invalid_datatype},
+        maps_utils:validate(
+            #{x => [3]},
+            #{x => #{datatype => {list, {not_in, [3]}}}}
+        )
+    ).
+
+validate_fun_list_spec_error_test() ->
+    SubSpec = #{y => #{datatype => binary}},
+    ?assertError(
+        #{code := invalid_datatype},
+        maps_utils:validate(
+            #{x => #{y => 1}},
+            #{x => #{validator => {list, SubSpec}}}
+        )
+    ).
+
+validate_invalid_validator_test() ->
+    ?assertError(
+        _,
+        maps_utils:validate(
+            #{x => 1},
+            #{x => #{validator => {list, binary}}}
+        )
+    ).
