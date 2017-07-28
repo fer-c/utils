@@ -808,6 +808,10 @@ maybe_eval(K, V, KSpec, Opts) ->
     end.
 
 
+%% @private
+do_maybe_eval(K, V, #{validator := {list, _}}, Opts) when not is_list(V) ->
+    throw(invalid_datatype_error(K, list, Opts));
+
 do_maybe_eval(K, V, #{validator := {list, Fun}}, Opts)
 when is_list(V), is_function(Fun, 1) ->
 
@@ -891,6 +895,9 @@ do_maybe_eval(K, V, #{validator := Spec}, Opts) when is_map(V), is_list(Spec) ->
 
 do_maybe_eval(K, _, #{validator := Spec}, Opts) when is_map(Spec) ->
     {error, invalid_datatype_error(K, map, Opts)};
+
+do_maybe_eval(K, V, #{validator := _} = Spec, Opts) ->
+   error(badarg, [K, V, Spec, Opts]);
 
 do_maybe_eval(K, null, _, Opts) ->
     {error, invalid_value_error(K, null, Opts)};
