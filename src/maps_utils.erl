@@ -799,6 +799,12 @@ maybe_eval_update(_, V, #{update_validator := Spec}, Changes, Opts) when is_map(
     FoldFun = fun (S, Accum) -> Accum++validate_update_error_list(V, Changes, S, Opts) end,
     lists:foldl(FoldFun, [], Spec);
 
+maybe_eval_update(_, _, #{update_validator := Spec}, _Changes, _Opts) when not is_list(Spec) andalso not is_map(Spec) ->
+   error(badarg, Spec); %Invalid Spec
+
+maybe_eval_update(_, V, #{update_validator := _}, _Changes, _Opts) ->
+   error(badarg, V); %No deberia pasar pues V se valida antes
+
 maybe_eval_update(_, _, _, _, _) ->
     [].
 

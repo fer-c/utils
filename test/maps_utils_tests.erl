@@ -812,8 +812,44 @@ validate_fun_list_spec_error_test() ->
 validate_invalid_validator_test() ->
     ?assertError(
         _,
-        maps_utils:validate(
+        maps_utils:validate_update(
             #{x => 1},
             #{x => #{validator => {list, binary}}}
+        )
+    ).
+
+validate_update_update_test() ->
+    ?assertEqual(
+        ok,
+        maps_utils:validate_update(
+            #{x => 1}, #{x => 2},
+            #{x => #{update_validator => fun (X,Y) -> X=<Y end}}
+        )
+    ).
+
+validate_update_nested_invalid_update_test() ->
+    ?assertError(
+        #{code := invalid_value},
+        maps_utils:validate_update(
+            #{x => #{y => 1}}, #{x => #{y => 2}},
+            #{x => #{update_validator => #{y => #{update_validator => fun (X,Y) -> X>=Y end}}}}
+        )
+    ).
+
+validate_update_invalid_update_test() ->
+    ?assertError(
+        #{code := invalid_value},
+        maps_utils:validate_update(
+            #{x => 1}, #{x => 2},
+            #{x => #{update_validator => fun (X,Y) -> X>=Y end}}
+        )
+    ).
+
+validate_update_invalid_validator_test() ->
+    ?assertError(
+        _,
+        maps_utils:validate(
+            #{x => 1}, #{x => 2},
+            #{x => #{update_validator => 3}}
         )
     ).
