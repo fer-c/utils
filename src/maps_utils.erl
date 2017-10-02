@@ -188,6 +188,7 @@
 -export([get_path/2]).
 -export([get_path/3]).
 -export([is_any_key/2]).
+-export([are_all_keys/2]).
 -export([get_any/2]).
 -export([get_any/3]).
 -export([put_path/3]).
@@ -251,6 +252,16 @@ is_any_key([H|T], M) ->
 
 is_any_key([], _) ->
     false.
+
+
+%% -----------------------------------------------------------------------------
+%% @doc
+%% @end
+%% -----------------------------------------------------------------------------
+-spec are_all_keys(list(), map()) -> boolean().
+
+are_all_keys(L, M) ->
+    sets:is_subset(sets:from_list(L), sets:from_list(maps:keys(M))).
 
 
 %% -----------------------------------------------------------------------------
