@@ -99,15 +99,15 @@
                                     | neg_integer
                                     | non_neg_integer
                                     | number
-                                    | pid 
+                                    | pid
                                     | port
                                     | pos_integer
-                                    | reference 
-                                    | string 
+                                    | reference
+                                    | string
                                     | timeout
                                     | tuple
                                     | {function, N :: non_neg_integer()}
-                                    | {record, Name :: atom()}.                 
+                                    | {record, Name :: atom()}.
 
 -type compound()                ::  [base_datatype()]
                                     | {in, [base_datatype()]}
@@ -187,6 +187,9 @@
 -export([collect/2]).
 -export([get_path/2]).
 -export([get_path/3]).
+-export([is_any_key/2]).
+-export([get_any/2]).
+-export([get_any/3]).
 -export([put_path/3]).
 -export([remove_path/2]).
 -export([split/2]).
@@ -235,6 +238,51 @@ get_path([], _, _) ->
 
 get_path(Path, Map, Default)  when is_list(Path) ->
     do_get_path(Path, Map, Default).
+
+
+%% -----------------------------------------------------------------------------
+%% @doc
+%% @end
+%% -----------------------------------------------------------------------------
+-spec is_any_key(list(), map()) -> boolean().
+
+is_any_key([H|T], M) ->
+    maps:is_key(H, M) orelse is_any_key(T, M);
+
+is_any_key([], _) ->
+    false.
+
+
+%% -----------------------------------------------------------------------------
+%% @doc
+%% @end
+%% -----------------------------------------------------------------------------
+-spec get_any(list(), map()) -> term().
+
+get_any(Keys, Map) ->
+    case do_get_any(Keys, Map) of
+        '$error' ->
+            error({badkeys, Keys});
+        Val ->
+            Val
+    end.
+
+
+
+%% -----------------------------------------------------------------------------
+%% @doc
+%% @end
+%% -----------------------------------------------------------------------------
+-spec get_any(list(), map(), term()) -> term().
+
+get_any(Keys, Map, Default) ->
+    case do_get_any(Keys, Map) of
+        '$error' ->
+            Default;
+        Val ->
+            Val
+    end.
+
 
 
 
@@ -589,6 +637,16 @@ do_remove_path(Key, Map) ->
     maps:remove(Key, Map).
 
 
+do_get_any([H|T], Map) ->
+    case maps:get(H, Map, '$error') of
+        '$error' ->
+            do_get_any(T, Map);
+        Val ->
+            Val
+    end;
+
+do_get_any([], _) ->
+    '$error'.
 
 
 %% =============================================================================
@@ -767,7 +825,7 @@ maybe_allow(K, undefined, #{allow_undefined := false} = KSpec, Opts) ->
 
 
 %% @private
-maybe_get_default(_, #{required := true, default := F}, _) 
+maybe_get_default(_, #{required := true, default := F}, _)
 when is_function(F, 0) ->
     {ok, F()};
 
@@ -944,11 +1002,11 @@ is_valid_datatype(V, #{datatype := neg_integer})
 when is_integer(V) andalso V < 0 ->
     true;
 
-is_valid_datatype(V, #{datatype := non_neg_integer}) 
+is_valid_datatype(V, #{datatype := non_neg_integer})
 when is_integer(V) andalso V >= 0 ->
     true;
 
-is_valid_datatype(V, #{datatype := timeout}) 
+is_valid_datatype(V, #{datatype := timeout})
 when V =:= infinity orelse (is_integer(V) andalso V > 0) ->
     true;
 
@@ -1053,9 +1111,9 @@ is_datatype(tuple) -> true;
 is_datatype({function, N}) when is_integer(N), N >= 0 -> true;
 is_datatype({record, Tag}) when is_atom(Tag) -> true;
 is_datatype({in, L}) when is_list(L) -> true;
-is_datatype({list, X}) -> is_datatype(X);     
+is_datatype({list, X}) -> is_datatype(X);
 is_datatype({not_in, L}) when is_list(L) -> true;
-is_datatype(L) when is_list(L) -> lists:all(fun is_datatype/1, L); 
+is_datatype(L) when is_list(L) -> lists:all(fun is_datatype/1, L);
 is_datatype(T) -> error({invalid_datatype, T}).
 
 
