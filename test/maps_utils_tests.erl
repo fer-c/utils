@@ -63,7 +63,7 @@ datatype_1_test() ->
     ?assertError(
         #{code := invalid_datatype},
         maps_utils:validate(
-            #{x => 1}, 
+            #{x => 1},
             #{x => #{datatype => boolean}}
         )
     ).
@@ -73,20 +73,20 @@ datatype_format_1_test() ->
     ?assertError(
         #{code := invalid_datatype, message := Msg},
         maps_utils:validate(
-            #{x => 1}, 
+            #{x => 1},
             #{x => #{datatype => boolean}},
              #{error_formatters => #{
                 invalid_datatype => fun(_, _) -> Msg end
             }}
         )
     ).
-   
+
 
 validator_1_test() ->
     ?assertError(
         #{code := invalid_value},
         maps_utils:validate(
-            #{x => true}, 
+            #{x => true},
             #{x => #{validator => fun erlang:is_integer/1}}
         )
     ).
@@ -95,7 +95,7 @@ transform_1_test() ->
     ?assertError(
         {invalid_validator_return_value, x},
         maps_utils:validate(
-            #{x => 1}, 
+            #{x => 1},
             #{x => #{validator => fun(X) -> X*2 end}}
         )
     ).
@@ -104,7 +104,7 @@ transform_2_test() ->
     ?assertEqual(
         #{x => 2},
         maps_utils:validate(
-            #{x => 1}, 
+            #{x => 1},
             #{x => #{validator => fun(X) -> {ok, X*2} end}}
         )
     ).
@@ -113,7 +113,7 @@ transform_3_test() ->
     ?assertEqual(
         #{x => 1},
         maps_utils:validate(
-            #{x => 1}, 
+            #{x => 1},
             #{x => #{validator => fun(_X) -> true end}}
         )
     ).
@@ -122,7 +122,7 @@ transform_4_test() ->
     ?assertError(
         {invalid_datatype, foo},
         maps_utils:validate(
-            #{x => 1}, 
+            #{x => 1},
             #{x => #{datatype => foo}}
         )
     ).
@@ -132,7 +132,7 @@ formatters() ->
     ?assertError(
         {invalid_datatype, foo},
         maps_utils:validate(
-            #{x => 1}, 
+            #{x => 1},
             #{x => #{datatype => foo}}
         )
     ).
@@ -141,11 +141,11 @@ null_1_test() ->
     ?assertEqual(
         #{foo => null},
         maps_utils:validate(
-            #{foo => null}, 
+            #{foo => null},
             #{foo => #{
                 allow_null => true,
-                datatype => binary, 
-                required => false, 
+                datatype => binary,
+                required => false,
                 default => <<"foo">>,
                 validator => fun(_) -> {ok, <<"bar">>} end
                 }
@@ -157,11 +157,11 @@ null_2_test() ->
     ?assertEqual(
         #{foo => <<"bar">>},
         maps_utils:validate(
-            #{foo => null}, 
+            #{foo => null},
             #{foo => #{
                 allow_null => false,
-                datatype => binary, 
-                required => false, 
+                datatype => binary,
+                required => false,
                 default => <<"foo">>,
                 validator => fun(_) -> {ok, <<"bar">>} end
                 }
@@ -173,11 +173,11 @@ null_3_test() ->
     ?assertError(
         #{code := invalid_value},
         maps_utils:validate(
-            #{foo => null}, 
+            #{foo => null},
             #{foo => #{
                 allow_null => false,
-                datatype => binary, 
-                required => false, 
+                datatype => binary,
+                required => false,
                 default => <<"foo">>
                 }
             }
@@ -188,11 +188,11 @@ null_4_test() ->
     ?assertEqual(
         #{},
         maps_utils:validate(
-            #{foo => null}, 
+            #{foo => null},
             #{foo => #{
                 allow_null => remove,
-                datatype => binary, 
-                required => false, 
+                datatype => binary,
+                required => false,
                 default => <<"foo">>,
                 validator => fun(_) -> {ok, <<"bar">>} end
                 }
@@ -205,11 +205,11 @@ undefined_1_test() ->
     ?assertEqual(
         #{foo => undefined},
         maps_utils:validate(
-            #{foo => undefined}, 
+            #{foo => undefined},
             #{foo => #{
                 allow_undefined => true,
-                datatype => binary, 
-                required => false, 
+                datatype => binary,
+                required => false,
                 default => <<"foo">>,
                 validator => fun(_) -> {ok, <<"bar">>} end
                 }
@@ -221,11 +221,11 @@ undefined_2_test() ->
     ?assertEqual(
         #{foo => <<"bar">>},
         maps_utils:validate(
-            #{foo => undefined}, 
+            #{foo => undefined},
             #{foo => #{
                 allow_undefined => false,
-                datatype => binary, 
-                required => false, 
+                datatype => binary,
+                required => false,
                 default => <<"foo">>,
                 validator => fun(_) -> {ok, <<"bar">>} end
                 }
@@ -237,11 +237,11 @@ undefined_3_test() ->
     ?assertError(
         #{code := invalid_value},
         maps_utils:validate(
-            #{foo => undefined}, 
+            #{foo => undefined},
             #{foo => #{
                 allow_undefined => false,
-                datatype => binary, 
-                required => false, 
+                datatype => binary,
+                required => false,
                 default => <<"foo">>
                 }
             }
@@ -252,11 +252,11 @@ undefined_4_test() ->
     ?assertEqual(
         #{},
         maps_utils:validate(
-            #{foo => undefined}, 
+            #{foo => undefined},
             #{foo => #{
                 allow_undefined => remove,
-                datatype => binary, 
-                required => false, 
+                datatype => binary,
+                required => false,
                 default => <<"foo">>,
                 validator => fun(_) -> {ok, <<"bar">>} end
                 }
@@ -266,56 +266,56 @@ undefined_4_test() ->
 
 merge_test() ->
     Result = maps_utils:validate(
-        #{foo => 1, bar => 2}, 
+        #{foo => 1, bar => 2},
         #{
             foo => #{
                 key => foobar,
-                required => true, 
-                validator => 
-                    fun(V) -> 
+                required => true,
+                validator =>
+                    fun(V) ->
                         {merge, fun
                             (undefined) ->
                                 #{bar => V};
                             (X) ->
                                 maps:merge(#{foo => V}, X)
                             end
-                        } 
+                        }
                     end
             },
             bar => #{
                 key => foobar,
-                required => true, 
-                validator => 
-                    fun(V) -> 
+                required => true,
+                validator =>
+                    fun(V) ->
                         {merge, fun
                             (undefined) ->
                                 #{bar => V};
                             (X) ->
                                 maps:merge(#{bar => V}, X)
                             end
-                        } 
+                        }
                     end
             }
         }
     ),
     ?assertEqual(#{foobar => #{foo => 1, bar => 2}}, Result).
 
-   
+
    merge_2_test() ->
     Result = maps_utils:validate(
-        #{foo => 1, bar => 2}, 
+        #{foo => 1, bar => 2},
         #{
             foo => #{
-                required => true, 
-                validator => 
-                    fun(V) -> 
+                required => true,
+                validator =>
+                    fun(V) ->
                         {merge, fun
                             (undefined) ->
                                 #{bar => V};
                             (X) ->
                                 maps:merge(#{foo => V}, X)
                             end
-                        } 
+                        }
                     end
             },
             bar => #{
@@ -329,7 +329,7 @@ alias_1_test() ->
     ?assertEqual(
         #{foo => 1},
         maps_utils:validate(
-            #{foo => 1}, 
+            #{foo => 1},
             #{foo => #{
                 alias => <<"foo">>
             }}
@@ -340,7 +340,7 @@ alias_2_test() ->
     ?assertEqual(
         #{foo => 1},
         maps_utils:validate(
-            #{<<"foo">> => 1}, 
+            #{<<"foo">> => 1},
             #{foo => #{
                 alias => <<"foo">>
             }}
@@ -356,8 +356,8 @@ or_1_test() ->
     },
     Spec = #{
         field => #{
-            datatype => map, 
-            required => true, 
+            datatype => map,
+            required => true,
             validator => [Spec1, Spec2]
         }
     },
@@ -378,8 +378,8 @@ or_2_test() ->
     },
     Spec = #{
         field => #{
-            datatype => map, 
-            required => true, 
+            datatype => map,
+            required => true,
             validator => [Spec1, Spec2]
         }
     },
@@ -436,8 +436,8 @@ all_in_2_test() ->
 default_fun_test() ->
     Spec = #{
         field => #{
-            datatype => integer, 
-            required => true, 
+            datatype => integer,
+            required => true,
             default => fun() -> 1 end
         }
     },
@@ -617,6 +617,27 @@ with_paths_2_test() ->
         maps_utils:with_paths([[field, field], [field2]], Map)
     ).
 
+with_paths_3_test() ->
+    Map = #{},
+    ?assertEqual(
+        #{},
+        maps_utils:with_paths([[field, field], [field2]], Map)
+    ).
+
+with_paths_4_test() ->
+    Map = #{},
+    ?assertEqual(
+        #{},
+        maps_utils:with_paths([[a, b]], Map)
+    ).
+
+with_paths_5_test() ->
+    Map = #{a => 1},
+    ?assertEqual(
+        Map,
+        maps_utils:without_paths([[a, b]], Map)
+    ).
+
 with_paths_invalid_type_test() ->
     ?assertError(
         badarg,
@@ -635,6 +656,27 @@ without_paths_2_test() ->
     ?assertEqual(
         #{field => #{}, field3 => nada},
         maps_utils:without_paths([[field, field], [field2]], Map)
+    ).
+
+without_paths_3_test() ->
+    Map = #{},
+    ?assertEqual(
+        Map,
+        maps_utils:without_paths([[field, field], [field2]], Map)
+    ).
+
+without_paths_4_test() ->
+    Map = #{a => 1},
+    ?assertEqual(
+        Map,
+        maps_utils:without_paths([[a, b]], Map)
+    ).
+
+without_paths_5_test() ->
+    Map = #{},
+    ?assertEqual(
+        Map,
+        maps_utils:without_paths([[a, b]], Map)
     ).
 
 without_paths_invalid_type_test() ->
@@ -707,7 +749,7 @@ validate_atomic_test() ->
     ?assertError(
         #{ code := invalid_datatype},
         maps_utils:validate(
-            #{x => 1, y => 1}, 
+            #{x => 1, y => 1},
             #{x => #{datatype => binary}, y => #{datatype => binary}},
             #{atomic => false}
         )
@@ -717,7 +759,7 @@ validate_two_errors_test() ->
     ?assertError(
         #{ code := invalid_data, errors := [_X, _Y] },
         maps_utils:validate(
-            #{x => 1, y => 1}, 
+            #{x => 1, y => 1},
             #{x => #{datatype => binary}, y => #{datatype => binary}}
         )
     ).

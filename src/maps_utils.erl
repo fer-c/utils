@@ -336,7 +336,12 @@ with_paths([], _) ->
 
 with_paths(Ps, M) when is_list(Ps), is_map(M) ->
     Fun = fun(P, Acc) ->
-      put_path(P, get_path(P, M), Acc)
+        case get_path(P, M, '$error') of
+            '$error' ->
+                Acc;
+            Val ->
+                put_path(P, Val, Acc)
+        end
     end,
     lists:foldl(Fun, #{}, Ps);
 
@@ -636,7 +641,14 @@ do_remove_path([Key], Map) ->
     maps:remove(Key, Map);
 
 do_remove_path([H|T], Map) when is_map(Map) ->
-    maps:put(H, do_remove_path(T, maps:get(H, Map, #{})), Map);
+    case maps:find(H, Map) of
+        {ok, Val} when is_map(Val) ->
+            maps:put(H, do_remove_path(T, Val), Map);
+        {ok, _} ->
+            Map;
+        error ->
+            Map
+    end;
 
 do_remove_path([H|_], Term) when is_list(H) ->
     error({badmap, Term});
@@ -648,6 +660,7 @@ do_remove_path(Key, Map) ->
     maps:remove(Key, Map).
 
 
+%% @private
 do_get_any([H|T], Map) ->
     case maps:get(H, Map, '$error') of
         '$error' ->
