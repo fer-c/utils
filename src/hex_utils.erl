@@ -30,4 +30,8 @@ hexstr_to_bin([], Acc) ->
 
 hexstr_to_bin([X,Y|T], Acc) ->
   {ok, [V], []} = io_lib:fread("~16u", [X,Y]),
+  hexstr_to_bin(T, [V | Acc]);
+
+hexstr_to_bin([X|T], Acc) ->
+  {ok, [V], []} = io_lib:fread("~16u", [X]),
   hexstr_to_bin(T, [V | Acc]).
