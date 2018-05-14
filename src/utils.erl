@@ -1,7 +1,7 @@
 -module(utils).
 
 %% API exports
--export([binary_rotate/1]).
+-export([bit_reverse/1]).
 
 
 
@@ -12,25 +12,9 @@
 %% API
 %% =============================================================================
 
--spec binary_rotate(integer()) -> integer().
+-spec bit_reverse(integer()) -> integer().
 
-binary_rotate(N) ->
-    binary_rotate(N, 0).
-
-
-
-
-%% =============================================================================
-%% PRIVATE
-%% =============================================================================
-
-
-
-
-%% @private
-binary_rotate(N, Acc) when N > 0 ->
-    binary_rotate((N bsr 1), (((Acc bsl 1) bor (N band 1))));
-
-binary_rotate(_, Acc) ->
-    Acc.
-
+bit_reverse(N) ->
+    L = lists:reverse([X || <<X:1/big-unsigned-integer>> <= <<N/integer>>]),
+    <<Res:8/integer>> = << <<X:1/big-unsigned-integer>> || X <- L>>,
+    Res.
