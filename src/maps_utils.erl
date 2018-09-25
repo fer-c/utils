@@ -166,6 +166,7 @@
 
 -type validation_opts() ::  #{
     atomic => boolean(),
+    keep_non_validated_fields => boolean(),
     labels => binary | atom | existing_atom | attempt_atom,
     error_code => atom(),
     error_formatters => formatters()
@@ -513,11 +514,17 @@ validate_update(Map0, Changes, Spec) when is_map(Spec) ->
     NewMap :: map().
 
 validate(Map0, Spec, Opts) when is_map(Spec), is_map(Opts) ->
-    case do_validate(Map0, Spec, Opts) of
+    FinalVal = case do_validate(Map0, Spec, Opts) of
         {error, Reason} ->
             error(Reason);
         Val ->
             Val
+    end,
+    case Opts of
+        #{keep_non_validated_fields := true} ->
+            maps:merge(Map0, FinalVal);
+        _ ->
+            FinalVal
     end.
 
 
