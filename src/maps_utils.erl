@@ -166,6 +166,7 @@
 
 -type validation_opts() ::  #{
     atomic => boolean(),
+    keep_unknown => boolean(),
     labels => binary | atom | existing_atom | attempt_atom,
     error_code => atom(),
     error_formatters => formatters()
@@ -513,12 +514,16 @@ validate_update(Map0, Changes, Spec) when is_map(Spec) ->
     NewMap :: map().
 
 validate(Map0, Spec, Opts) when is_map(Spec), is_map(Opts) ->
+    KeepUnknown = maps:get(keep_unknown, Opts, false),
     case do_validate(Map0, Spec, Opts) of
         {error, Reason} ->
             error(Reason);
+        Val when KeepUnknown == true ->
+            maps:merge(Map0, Val);
         Val ->
             Val
     end.
+
 
 
 %% @private

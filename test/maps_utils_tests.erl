@@ -59,6 +59,16 @@ require_skips_test() ->
         maps_utils:validate(Map, #{ x => #{required => true}})
     ).
 
+keep_unknown_fields_1_test() ->
+    ?assertEqual(
+        #{x => 2, y => <<"non_validated">>},
+        maps_utils:validate(
+            #{x => 1, y => <<"non_validated">>},
+            #{x => #{validator => fun(X) -> {ok, X*2} end}},
+            #{keep_unknown => true}
+        )
+    ).
+
 datatype_1_test() ->
     ?assertError(
         #{code := invalid_datatype},
