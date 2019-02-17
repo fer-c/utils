@@ -1090,7 +1090,7 @@ is_valid_datatype(V, #{datatype := {not_in, L}}) ->
 is_valid_datatype(V, #{datatype := {list, {in, L}}}) when is_list(V) ->
     A = sets:from_list(V),
     B = sets:from_list(L),
-    A == sets:intersection([A, B]);
+    sets:size(A) == sets:size(sets:intersection([A, B]));
 
 is_valid_datatype(V, #{datatype := {list, {not_in, L}}}) when is_list(V) ->
     A = sets:from_list(V),
