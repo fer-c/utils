@@ -201,6 +201,7 @@
 -export([validate_update/4]).
 -export([with_paths/2]).
 -export([without_paths/2]).
+-export([merge/3]).
 
 
 
@@ -452,6 +453,21 @@ split(L, Map) ->
     {maps:with(L, Map), maps:without(L, Map)}.
 
 
+%% -----------------------------------------------------------------------------
+%% @doc
+%% @end
+%% -----------------------------------------------------------------------------
+-spec merge(
+    fun((Key :: any(), Value1 :: any(), Value2 :: any()) -> Value :: term()), map(),
+    map()
+) -> map().
+
+merge(Fun, A, B) ->
+    maps:from_list(
+        orddict:to_list(
+        orddict:merge(Fun,
+                        orddict:from_list(maps:to_list(A)),
+                        orddict:from_list(maps:to_list(B))))).
 
 
 %% -----------------------------------------------------------------------------
