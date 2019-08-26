@@ -123,4 +123,6 @@ payload(ByteSize) ->
 %% @private
 encode(Id) ->
     Base62 = base62:encode(Id),
-    lists:flatten(string:pad(Base62, ?ENCODED_LEN, leading, $0)).
+    list_to_binary(
+        lists:flatten(string:pad(Base62, ?ENCODED_LEN, leading, $0))
+    ).

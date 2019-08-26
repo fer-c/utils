@@ -13,7 +13,7 @@
 %% @doc
 %% @end
 %% -----------------------------------------------------------------------------
-encode(X) ->
+encode(X) when is_integer(X) ->
     encode(X, []).
 
 
@@ -21,7 +21,10 @@ encode(X) ->
 %% @doc
 %% @end
 %% -----------------------------------------------------------------------------
-decode(S) ->
+decode(S) when is_binary(S) ->
+    decode(binary_to_list(S));
+
+decode(S) when is_list(S) ->
     decode(S, 0).
 
 
