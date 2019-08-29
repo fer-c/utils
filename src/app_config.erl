@@ -74,7 +74,7 @@ get(App, Key) when is_tuple(Key) ->
     get(App, tuple_to_list(Key));
 
 get(App, Key) ->
-    persistent_term:get({App, Key}).
+    persistent_term:get({App, Key}, undefined).
 
 
 %% -----------------------------------------------------------------------------
@@ -85,14 +85,10 @@ get(App, Key) ->
     App :: atom(), Key :: list() | atom() | tuple(), Default :: term()) ->
     term().
 
-get(App, [H|T], Default) ->
-    case get(H, Default) of
-        Term when is_map(Term) ->
-            maps_utils:get_path(T, Term, Default);
-        Term when is_list(Term) ->
-            get_path(App, T, Term, Default);
-        _ ->
-            Default
+get(App, L, Default) when is_list(L) ->
+    case get(App, L) of
+        undefined -> Default;
+        Value -> Value
     end;
 
 get(App, Key, Default) when is_tuple(Key) ->
