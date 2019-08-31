@@ -126,6 +126,8 @@
 
 -type validator()               ::  {list, validator_fun()}
                                     | {list, entry_spec()}
+                                    | {map, {base_datatype(), validator_fun()}}
+                                    | {map, {base_datatype(), entry_spec()}}
                                     | [validator_fun()| entry_spec()]
                                     | validator_fun()
                                     | entry_spec().
@@ -946,6 +948,29 @@ when is_list(V), is_function(Fun, 1) ->
             {error, Error}
     end;
 
+do_maybe_eval(K, V, #{validator := {map, {KeyType, Fun}}}, Opts)
+when is_map(V), is_function(Fun, 1) ->
+
+    Inner = fun(Key, Value) ->
+        is_valid_datatype(Key, #{datatype => KeyType}) orelse
+        throw(invalid_value_error(K, V, Opts)),
+        case Fun(Value) of
+            {ok, NewValue} -> NewValue;
+            true -> Value;
+            false -> throw(invalid_value_error(K, V, Opts));
+            error -> throw(invalid_value_error(K, V, Opts));
+            _ ->
+                error({invalid_validator_return_value, K})
+        end
+    end,
+
+    try
+        {ok, maps:map(Inner, V)}
+    catch
+        throw:Error when is_map(Error) ->
+            {error, Error}
+    end;
+
 do_maybe_eval(K, V, #{validator := {list, Spec}}, Opts)
 when is_list(V), is_map(Spec) ->
 
@@ -963,6 +988,30 @@ when is_list(V), is_map(Spec) ->
 
     try
         {ok, lists:reverse(lists:foldl(Inner, [], V))}
+    catch
+        throw:Error when is_map(Error) ->
+            {error, Error}
+    end;
+
+do_maybe_eval(K, V, #{validator := {map, {KeyType, Spec}}}, Opts)
+when is_map(V), is_map(Spec) ->
+
+    Inner = fun
+        (Key, Value) ->
+            is_valid_datatype(Key, #{datatype => KeyType}) orelse
+            throw(invalid_value_error(K, V, Opts)),
+            case do_validate(Value, Spec, Opts) of
+                {error, Reason} ->
+                    throw(Reason);
+                NewValue ->
+                    NewValue
+            end;
+        (_, _) ->
+            throw(invalid_value_error(K, V, Opts))
+    end,
+
+    try
+        {ok, maps:map(Inner, V)}
     catch
         throw:Error when is_map(Error) ->
             {error, Error}
