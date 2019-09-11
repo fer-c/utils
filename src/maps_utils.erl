@@ -71,6 +71,7 @@
     ])
 }).
 
+
 -define(INVALID_VALUE_MSG(K, V),
     iolist_to_binary([
         <<"The value '">>, term_to_iolist(V),
@@ -128,7 +129,14 @@
                                     | {list, entry_spec()}
                                     | {map, {base_datatype(), validator_fun()}}
                                     | {map, {base_datatype(), entry_spec()}}
-                                    | [validator_fun()| entry_spec()]
+                                    | {map, {
+                                        base_datatype(),
+                                        [validator_fun() | entry_spec()]}}
+                                    | [
+                                        validator_fun()
+                                        | entry_spec()
+                                        | {list, entry_spec()}
+                                    ]
                                     | validator_fun()
                                     | entry_spec().
 
@@ -481,6 +489,7 @@ merge(Fun, A, B) ->
 
 validate(Map0, Spec) when is_map(Spec) ->
     validate(Map0, Spec, #{}).
+
 
 %% -----------------------------------------------------------------------------
 %% @doc
@@ -996,18 +1005,16 @@ when is_list(V), is_map(Spec) ->
 do_maybe_eval(K, V, #{validator := {map, {KeyType, Spec}}}, Opts)
 when is_map(V), is_map(Spec) ->
 
-    Inner = fun
-        (Key, Value) ->
-            is_valid_datatype(Key, #{datatype => KeyType}) orelse
-            throw(invalid_value_error(K, V, Opts)),
-            case do_validate(Value, Spec, Opts) of
-                {error, Reason} ->
-                    throw(Reason);
-                NewValue ->
-                    NewValue
-            end;
-        (_, _) ->
-            throw(invalid_value_error(K, V, Opts))
+    Inner = fun(Key, Value) ->
+        is_valid_datatype(Key, #{datatype => KeyType}) orelse
+        throw(invalid_value_error(K, V, Opts)),
+
+        case do_validate(Value, Spec, Opts) of
+            {error, Reason} ->
+                throw(Reason);
+            NewValue ->
+                NewValue
+        end
     end,
 
     try
@@ -1015,6 +1022,28 @@ when is_map(V), is_map(Spec) ->
     catch
         throw:Error when is_map(Error) ->
             {error, Error}
+    end;
+
+do_maybe_eval(K, V, #{validator := {map, {KeyType, Specs}}}, Opts)
+when is_map(V), is_list(Specs) ->
+
+    Inner = fun(Key, Value) ->
+        is_valid_datatype(Key, #{datatype => KeyType}) orelse
+        throw(invalid_value_error(K, V, Opts)),
+
+        case validates_any(Key, Value, Specs, Opts) of
+            {error, Reason} ->
+                throw(Reason);
+            {ok, NewValue} ->
+                NewValue
+        end
+    end,
+
+    try
+        {ok, maps:map(Inner, V)}
+    catch
+        throw:TReason when is_map(TReason) ->
+            {error, TReason}
     end;
 
 do_maybe_eval(K, V, #{validator := Fun}, Opts) when is_function(Fun, 1) ->
@@ -1041,21 +1070,12 @@ do_maybe_eval(_, V, #{validator := Spec}, Opts) when is_map(V), is_map(Spec) ->
             {ok, Val}
     end;
 
-do_maybe_eval(K, V, #{validator := Spec}, Opts) when is_map(V), is_list(Spec) ->
-    Vals = lists:filtermap(fun(S) ->
-                case do_validate(V, S, Opts) of
-                    {error, _} -> false;
-                    Val -> {true, Val}
-                end
-            end, Spec),
-    case Vals of
-        [Val | _] ->
-            {ok, Val};
-        _ ->
-            {error, invalid_datatype_error(K, opts, Opts)}
-    end;
+do_maybe_eval(K, V, #{validator := ValidatorList}, Opts)
+when is_list(ValidatorList) ->
+    validates_any(K, V, ValidatorList, Opts);
 
 do_maybe_eval(K, _, #{validator := Spec}, Opts) when is_map(Spec) ->
+    %% Value is not a map
     {error, invalid_datatype_error(K, map, Opts)};
 
 do_maybe_eval(K, V, #{validator := _} = Spec, Opts) ->
@@ -1249,3 +1269,43 @@ invalid_value_error(K, V, _) ->
 %% From maps.erl
 error_type(M) when is_map(M) -> badarg;
 error_type(V) -> {badmap, V}.
+
+
+%% @private
+validates_any(K, V, Validators, Opts) ->
+    Fun = fun
+        (Spec, error) when is_map(Spec) ->
+            try
+                Val = validate(V, Spec, Opts),
+                %% We stop iterating as we found a valid value
+                throw({true, Val})
+            catch
+                error:_ ->
+                    %% We carry on iterating
+                    error
+            end;
+        (Fun, error) when is_function(Fun, 1) ->
+            case Fun(V) of
+                {ok, Val} ->
+                    throw({true, Val});
+                true ->
+                    throw({true, V});
+                _ ->
+                    error
+            end;
+        ({list, _} = Validator, error) ->
+            case do_maybe_eval(K, V, #{validator => Validator}, Opts) of
+                {ok, Val} ->
+                    throw({true, Val});
+                _ ->
+                    error
+        end
+    end,
+
+    try
+        error = lists:foldl(Fun, error, Validators),
+        throw(invalid_datatype_error(K, V, Opts))
+    catch
+        throw:{true, Val} ->
+            {ok, Val}
+    end.

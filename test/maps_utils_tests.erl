@@ -831,7 +831,7 @@ validate_nested_spec_error_test() ->
         )
     ).
 
-validate_mutiple_spec_error_test() ->
+validate_mutiple_spec_1_test() ->
     SubSpec = #{y => #{datatype => binary}},
     SubSpec2 = #{y => #{datatype => integer}},
     ?assertError(
@@ -841,6 +841,94 @@ validate_mutiple_spec_error_test() ->
             #{x => #{validator => [SubSpec, SubSpec2]}}
         )
     ).
+
+validate_mutiple_spec_2_test() ->
+    SubSpec = #{y => #{datatype => binary}},
+    SubSpec2 = #{y => #{datatype => integer}},
+    ?assertEqual(
+        #{x => #{y => <<"asdasd">>}},
+        maps_utils:validate(
+            #{x => #{y => <<"asdasd">>}},
+            #{x => #{validator => [SubSpec, SubSpec2]}}
+        )
+    ).
+
+validate_mutiple_spec_3_test() ->
+    SubSpec = #{y => #{datatype => binary}},
+    SubSpec2 = #{y => #{datatype => integer}},
+    ?assertEqual(
+        #{x => #{y => 1}},
+        maps_utils:validate(
+            #{x => #{y => 1}},
+            #{x => #{validator => [SubSpec, SubSpec2]}}
+        )
+    ).
+
+validate_map_multiple_spec_1_test() ->
+    Spec1 = #{
+        foo => #{required => true, datatype => binary}
+    },
+    Spec2 = #{
+        bar => #{required => true, datatype => integer}
+    },
+    Map = #{
+        x => #{
+            a => #{foo => <<"any">>},
+            b => #{bar => 1}
+        }
+    },
+    Spec = #{
+        x => #{
+            validator => {map, {atom, [Spec1, Spec2]}}}
+    },
+
+    ?assertEqual(Map, maps_utils:validate(Map, Spec)).
+
+
+validate_map_multiple_spec_2_test() ->
+    Spec1 = #{
+        foo => #{datatype => binary}
+    },
+    Spec2 = #{
+        bar => #{datatype => integer}
+    },
+    Map = #{
+        x => #{
+            %% key should be atom so it will fail
+            <<"a">> => #{foo => <<"any">>},
+            b => #{bar => 1}
+        }
+    },
+    Spec = #{
+        x => #{
+            validator => {map, {atom, [Spec1, Spec2]}}}
+    },
+
+    ?assertError(_, maps_utils:validate(Map, Spec)).
+
+
+validate_map_multiple_spec_3_test() ->
+    %% dbg:tracer(), dbg:p(all, c), dbg:tpl(maps_utils, '_', x),
+    Spec1 = #{
+        type => #{required => true, datatype => {in, [dog]}}
+    },
+    Spec2 = #{
+        type => #{required => true, datatype => {in, [cat]}}
+    },
+    Map = #{
+        x => #{
+            %% any should be binary
+            a => #{type => dog},
+            b => #{type => horse}
+        }
+    },
+    Spec = #{
+        x => #{
+            validator => {map, {atom, [Spec1, Spec2]}}}
+    },
+
+    ?assertError(_, maps_utils:validate(Map, Spec)).
+
 
 validate_not_in_datatype_test() ->
     ?assertError(
@@ -870,6 +958,8 @@ validate_invalid_validator_test() ->
         )
     ).
 
+
+%%  UPDATE (TO BE RE-CONSIDERED)
 validate_update_update_test() ->
     ?assertEqual(
         ok,
@@ -884,7 +974,7 @@ validate_update_nested_invalid_update_test() ->
         #{code := invalid_value},
         maps_utils:validate_update(
             #{x => #{y => 1}}, #{x => #{y => 2}},
-            #{x => #{update_validator => #{y => #{update_validator => fun (X,Y) -> X>=Y end}}}}
+            #{x => #{update_validator => #{y => #{update_validator => fun (X,Y) -> X >= Y end}}}}
         )
     ).
 
@@ -893,7 +983,7 @@ validate_update_invalid_update_test() ->
         #{code := invalid_value},
         maps_utils:validate_update(
             #{x => 1}, #{x => 2},
-            #{x => #{update_validator => fun (X,Y) -> X>=Y end}}
+            #{x => #{update_validator => fun (X,Y) -> X >= Y end}}
         )
     ).
 
@@ -905,3 +995,27 @@ validate_update_invalid_validator_test() ->
             #{x => #{update_validator => 3}}
         )
     ).
+
+validate_complicated_1_test() ->
+    ItemSpec = #{
+        bar => #{
+            required => true,
+            datatype => boolean
+        }
+    },
+    Spec1 = #{
+        foo => #{
+            required => true,
+            datatype => [binary, {list, map}],
+            validator => [fun erlang:is_binary/1, {list, ItemSpec}]
+        }
+    },
+    ?assertEqual(
+        #{foo => <<"bar">>},
+        maps_utils:validate(#{foo => <<"bar">>}, Spec1)
+    ),
+    ?assertEqual(
+        #{foo => [#{bar => true}]},
+        maps_utils:validate(#{foo => [#{bar => true}]}, Spec1)
+    ).
+
