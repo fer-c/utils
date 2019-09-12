@@ -60,6 +60,7 @@ require_skips_test() ->
     ).
 
 keep_unknown_fields_1_test() ->
+
     ?assertEqual(
         #{x => 2, y => <<"non_validated">>},
         maps_utils:validate(
@@ -81,6 +82,29 @@ keep_unknown_alias_fields_1_test() ->
                 }
             },
             #{keep_unknown => true}
+        )
+    ).
+
+keep_unknown_alias_fields_2_test() ->
+    Pattern = element(2, re:compile("_[a-z0-9_]{3,}")),
+    Validator = fun
+        (X) when is_binary(X) ->
+            re:run(X, Pattern) /= nomatch;
+        (X) when is_atom(X) ->
+            re:run(atom_to_binary(X, utf8), Pattern) /= nomatch
+    end,
+
+    ?assertEqual(
+        #{x => 2},
+        maps_utils:validate(
+            #{<<"x">> => 1, y => <<"non_validated">>},
+            #{
+                x => #{
+                    alias => <<"x">>,
+                    validator => fun(X) -> {ok, X*2} end
+                }
+            },
+            #{keep_unknown => true, unknown_label_validator => Validator}
         )
     ).
 

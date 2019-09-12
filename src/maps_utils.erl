@@ -177,6 +177,7 @@
 -type validation_opts() ::  #{
     atomic => boolean(),
     keep_unknown => boolean(),
+    unknown_label_validator => fun((term()) -> boolean()),
     labels => binary | atom | existing_atom | attempt_atom,
     error_code => atom(),
     error_formatters => formatters()
@@ -537,32 +538,46 @@ validate_update(Map0, Changes, Spec) when is_map(Spec) ->
 %% * invalid_value - the value failed the validator provided
 %% @end
 %% -----------------------------------------------------------------------------
--spec validate(Map :: map(), Spec :: map_spec(), validation_opts()) ->
-    NewMap :: map().
+-spec validate(InMap :: map(), Spec :: map_spec(), validation_opts()) ->
+    OutMap :: map() | no_return().
 
-validate(Map0, Spec, Opts) when is_map(Spec), is_map(Opts) ->
-    KeepUnknown = maps:get(keep_unknown, Opts, false),
-
-    case do_validate(Map0, Spec, Opts) of
+validate(InMap0, Spec, Opts) when is_map(Spec), is_map(Opts) ->
+    case do_validate(InMap0, Spec, Opts) of
         {error, Reason} ->
             error(Reason);
-        Val when KeepUnknown == true ->
-            Aliases = maps:fold(
-                fun
-                    (_, #{alias := Alias}, Acc) ->
-                        [Alias|Acc];
-                    (_, _, Acc) ->
-                        Acc
-                end,
-                [],
-                Spec
-            ),
-            Map1 = maps:without(Aliases, Map0),
-            maps:merge(Map1, Val);
-        Val ->
-            Val
+        Out ->
+            maybe_cleanup(InMap0, Spec, Opts, Out)
     end.
 
+
+maybe_cleanup(_In, _Spec, #{keep_unknown := false}, Out) ->
+    %% We just returned the validated map, ignoring unknown keys in In map
+    Out;
+
+maybe_cleanup(
+    In, Spec, #{keep_unknown := true, unknown_label_validator := Fun}, Out) when is_function(Fun, 1) ->
+    Unknowns = lists:subtract(maps:keys(In), maps:keys(Out)),
+    InvalidUnknowns = lists:filter(fun(X) -> not Fun(X) end, Unknowns),
+    maps:merge(cleanup(In, Spec, InvalidUnknowns), Out);
+
+maybe_cleanup(In, Spec, #{keep_unknown := true}, Out) ->
+    maps:merge(cleanup(In, Spec, []), Out);
+
+maybe_cleanup(_In, _Spec, _, Out) ->
+    %% We default to keep_unknown => false
+    Out.
+
+
+%% @private
+cleanup(In, Spec, ToRemove0) ->
+    CollectAliases = fun
+        (_, #{alias := Alias}, Acc) ->
+            [Alias|Acc];
+        (_, _, Acc) ->
+            Acc
+    end,
+    ToRemove1 = maps:fold(CollectAliases, ToRemove0, Spec),
+    maps:without(ToRemove1, In).
 
 %% @private
 do_validate(Map0, Spec, Opts) when is_map(Spec), is_map(Opts) ->
