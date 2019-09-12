@@ -564,7 +564,6 @@ validate(Map0, Spec, Opts) when is_map(Spec), is_map(Opts) ->
     end.
 
 
-
 %% @private
 do_validate(Map0, Spec, Opts) when is_map(Spec), is_map(Opts) ->
     Err0 = case maps:get(atomic, Opts, true) of
