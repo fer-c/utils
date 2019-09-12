@@ -69,7 +69,7 @@ get(App, Key) ->
     term().
 
 get(App, [H|T], Default) ->
-    Result = case get(App, H) of
+    Result = case get(App, H, Default) of
         Term when is_map(Term) ->
             maps_utils:get_path(T, Term, Default);
         Term when is_list(Term) ->
