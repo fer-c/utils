@@ -542,11 +542,23 @@ validate_update(Map0, Changes, Spec) when is_map(Spec) ->
 
 validate(Map0, Spec, Opts) when is_map(Spec), is_map(Opts) ->
     KeepUnknown = maps:get(keep_unknown, Opts, false),
+
     case do_validate(Map0, Spec, Opts) of
         {error, Reason} ->
             error(Reason);
         Val when KeepUnknown == true ->
-            maps:merge(Map0, Val);
+            Aliases = maps:fold(
+                fun
+                    (_, #{alias := Alias}, Acc) ->
+                        [Alias|Acc];
+                    (_, _, Acc) ->
+                        Acc
+                end,
+                [],
+                Spec
+            ),
+            Map1 = maps:without(Aliases, Map0),
+            maps:merge(Map1, Val);
         Val ->
             Val
     end.

@@ -69,6 +69,21 @@ keep_unknown_fields_1_test() ->
         )
     ).
 
+keep_unknown_alias_fields_1_test() ->
+    ?assertEqual(
+        #{x => 2, y => <<"non_validated">>},
+        maps_utils:validate(
+            #{<<"x">> => 1, y => <<"non_validated">>},
+            #{
+                x => #{
+                    alias => <<"x">>,
+                    validator => fun(X) -> {ok, X*2} end
+                }
+            },
+            #{keep_unknown => true}
+        )
+    ).
+
 datatype_1_test() ->
     ?assertError(
         #{code := invalid_datatype},
@@ -339,7 +354,7 @@ alias_1_test() ->
     ?assertEqual(
         #{foo => 1},
         maps_utils:validate(
-            #{foo => 1},
+            #{<<"foo">> => 1},
             #{foo => #{
                 alias => <<"foo">>
             }}
