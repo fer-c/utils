@@ -56,25 +56,8 @@ init(App) ->
 %% -----------------------------------------------------------------------------
 -spec get(App :: atom(), Key :: list() | atom() | tuple()) -> term().
 
-get(App, [H|T]) ->
-    case get(App, H) of
-        Term when is_map(Term) ->
-            case maps_utils:get_path(T, Term, ?ERROR) of
-                ?ERROR -> error(badarg);
-                Value -> Value
-            end;
-        Term when is_list(Term) ->
-            get_path(App, T, Term, ?ERROR);
-        _ ->
-            %% We cannot get(T) from a term which is neither a map nor a list
-            undefined
-    end;
-
-get(App, Key) when is_tuple(Key) ->
-    get(App, tuple_to_list(Key));
-
 get(App, Key) ->
-    persistent_term:get({App, Key}, undefined).
+    get(App, Key, ?ERROR).
 
 
 %% -----------------------------------------------------------------------------
@@ -85,17 +68,24 @@ get(App, Key) ->
     App :: atom(), Key :: list() | atom() | tuple(), Default :: term()) ->
     term().
 
-get(App, L, Default) when is_list(L) ->
-    case get(App, L) of
-        undefined -> Default;
-        Value -> Value
-    end;
+get(App, [H|T], Default) ->
+    Result = case get(App, H) of
+        Term when is_map(Term) ->
+            maps_utils:get_path(T, Term, Default);
+        Term when is_list(Term) ->
+            get_path(App, T, Term, Default);
+        _ ->
+            %% We cannot get(T) from a term which is neither a map nor a list
+            Default
+    end,
+    maybe_badarg(Result);
 
 get(App, Key, Default) when is_tuple(Key) ->
     get(App, tuple_to_list(Key), Default);
 
 get(App, Key, Default) ->
-    persistent_term:get({App, Key}, Default).
+    %% persistent_term:get({App, Key}, undefined).
+    maybe_badarg(persistent_term:get({App, Key}, Default)).
 
 
 %% -----------------------------------------------------------------------------
@@ -104,7 +94,7 @@ get(App, Key, Default) ->
 %% -----------------------------------------------------------------------------
 -spec set(App :: atom(), Key :: atom() | tuple(), Default :: term()) -> ok.
 
-set(App, Key, Value) ->
+set(App, Key, Value) when is_atom(App) andalso is_atom(Key) ->
     application:set_env(App, Key, Value),
     persistent_term:put({App, Key}, Value).
 
@@ -114,6 +104,7 @@ set(App, Key, Value) ->
 %% =============================================================================
 %% PRIVATE
 %% =============================================================================
+
 
 
 %% -----------------------------------------------------------------------------
@@ -151,3 +142,11 @@ get_path(_, _, _, ?ERROR) ->
 
 get_path(_, _, _, Default) ->
     Default.
+
+
+
+maybe_badarg(?ERROR) ->
+    error(badarg);
+
+maybe_badarg(Term) ->
+    Term.
