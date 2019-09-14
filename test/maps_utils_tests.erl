@@ -1058,3 +1058,65 @@ validate_complicated_1_test() ->
         maps_utils:validate(#{foo => [#{bar => true}]}, Spec1)
     ).
 
+validate_list_test() ->
+    Spec = #{
+        foo => #{
+            datatype => [
+                {list, {in,[<<"all">>,all,<<"anonymous">>,anonymous]}},
+                {list, binary}
+            ]
+        }
+    },
+    ?assertEqual(
+        #{foo => [all]},
+        maps_utils:validate(#{foo => [all]}, Spec)
+    ),
+    ?assertEqual(
+        #{foo => [<<"all">>]},
+        maps_utils:validate(#{foo => [<<"all">>]}, Spec)
+    ),
+    ?assertEqual(
+        #{foo => [<<"foo">>]},
+        maps_utils:validate(#{foo => [<<"foo">>]}, Spec)
+    ).
+
+validate_list_1_test() ->
+    Spec = #{
+        foo => #{
+            datatype => [
+                {in, [<<"all">>, all]},
+                {list, binary}
+            ]
+        }
+    },
+    ?assertEqual(
+        #{foo => all},
+        maps_utils:validate(#{foo => all}, Spec)
+    ),
+    ?assertEqual(
+        #{foo => <<"all">>},
+        maps_utils:validate(#{foo => <<"all">>}, Spec)
+    ),
+    ?assertEqual(
+        #{foo => [<<"foo">>]},
+        maps_utils:validate(#{foo => [<<"foo">>]}, Spec)
+    ).
+
+
+validate_list_2_test() ->
+    Spec = #{
+        foo => #{
+            datatype => [
+                {in, [any, all]},
+                binary
+            ]
+        }
+    },
+    ?assertEqual(
+        #{foo => any},
+        maps_utils:validate(#{foo => any}, Spec)
+    ),
+    ?assertEqual(
+        #{foo => <<"foo">>},
+        maps_utils:validate(#{foo => <<"foo">>}, Spec)
+    ).
