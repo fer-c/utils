@@ -6,6 +6,8 @@
 -export([round_robin/2]).
 -export([rotate_right/2]).
 -export([rotate_right_with/2]).
+-export([random/1]).
+-export([random/2]).
 
 
 
@@ -13,6 +15,37 @@
 %% =============================================================================
 %% API
 %% =============================================================================
+
+
+%% -----------------------------------------------------------------------------
+%% @doc Returns a random element form the list
+%% @end
+%% -----------------------------------------------------------------------------
+-spec random(list()) -> list().
+
+random([]) ->
+    error(badarg);
+
+random(L) ->
+    random(L, 1).
+
+
+%% -----------------------------------------------------------------------------
+%% @doc
+%% @end
+%% -----------------------------------------------------------------------------
+-spec random(list(), pos_integer()) -> list().
+
+random([Term], 1) ->
+    Term;
+
+random(L, N) when length(L) >= N ->
+    lists:sublist(shuffle(L), N);
+
+random(_, _) ->
+    error(badarg).
+
+
 
 
 %% -----------------------------------------------------------------------------
@@ -57,7 +90,7 @@ round_robin([_|T], X, L) ->
     round_robin(T, X, L);
 
 round_robin([], _, L) ->
-    hd(L).    
+    hd(L).
 
 
 %% -----------------------------------------------------------------------------
@@ -133,8 +166,8 @@ randomize(1, List) ->
 
 randomize(T, List) ->
     lists:foldl(
-        fun(_E, Acc) -> randomize(Acc) end, 
-        randomize(List), 
+        fun(_E, Acc) -> randomize(Acc) end,
+        randomize(List),
         lists:seq(1, (T - 1))).
 
 
