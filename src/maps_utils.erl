@@ -213,6 +213,7 @@
 -export([with_paths/2]).
 -export([without_paths/2]).
 -export([merge/3]).
+-export([to_property_list/1]).
 
 
 
@@ -480,6 +481,47 @@ merge(Fun, A, B) ->
                         orddict:from_list(maps:to_list(A)),
                         orddict:from_list(maps:to_list(B))))).
 
+
+%% -----------------------------------------------------------------------------
+%% @doc Returns a property list representation of a map. As opposed to
+%% maps:to_list/1 this function works recursively, turning each value of type
+%% map() into a property list.
+%% @end
+%% -----------------------------------------------------------------------------
+-spec to_property_list(Map :: map()) -> [proplists:property()].
+
+to_property_list(Map) ->
+    to_property_list(maps:next(maps:iterator(Map)), []).
+
+%% @private
+to_property_list({K, V, I}, Acc) when is_map(V) ->
+    NewAcc = [{K, to_property_list(V)} | Acc],
+    to_property_list(maps:next(I), NewAcc);
+
+to_property_list({K, V, I}, Acc) when is_list(V) ->
+    case io_lib:printable_unicode_list(V) of
+        true ->
+            to_property_list(maps:next(I), [{K, V} | Acc]);
+        false ->
+            NewAcc = [{K, [to_property(X) || X <- V]} | Acc],
+            to_property_list(maps:next(I), NewAcc)
+    end;
+
+to_property_list({K, V, I}, Acc) ->
+    to_property_list(maps:next(I), [{K, V} | Acc]);
+
+to_property_list(none, Acc) ->
+    Acc.
+
+%% @private
+to_property({K, V}) ->
+    {K, to_property_list(V)};
+
+to_property(Term) when is_map(Term) ->
+    to_property_list(Term);
+
+to_property(Term) ->
+    Term.
 
 %% -----------------------------------------------------------------------------
 %% @doc
