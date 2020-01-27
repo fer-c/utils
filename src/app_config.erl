@@ -44,12 +44,12 @@
 
 
 -callback will_set(Key :: atom(), Value :: any()) ->
-    {ok, NewValue :: any()} | {error, Reason :: any()}.
+    ok | {ok, NewValue :: any()} | {error, Reason :: any()}.
 
 
 -callback will_set(
     Key :: atom(), Value :: any(), Path :: list(), PathValue :: any()) ->
-    {ok, NewValue :: any()} | {error, Reason :: any()}.
+    ok | {ok, NewValue :: any()} | {error, Reason :: any()}.
 
 
 -callback on_set(Key :: atom(), Value :: any()) -> ok.
@@ -148,31 +148,40 @@ get(App, Key, Default) ->
     Key :: list() | atom() | tuple() | binary(),
     Default :: term()) -> ok.
 
-set(App, Key, Value) when is_atom(App) ->
-    case will_set(App, Key, Value) of
-        {ok, NewValue} ->
-            ok = do_set(App, Key, NewValue),
-            on_set(App, Key, NewValue);
-        {error, Reason} ->
-            error(Reason)
-    end;
+set(_, [], _)  ->
+    error(badarg);
 
 set(App, [Key|Path], PathValue) when is_atom(App) ->
     Value = case get(App, Key, undefined) of
         Term when is_map(Term) orelse is_list(Term) ->
             Term;
         _ ->
-            error(badarg)
+            []
     end,
 
     case will_set(App, Key, Value, Path, PathValue) of
-        {ok, NewValue} ->
+        ok ->
+            NewValue = do_set_path(Value, Path, PathValue),
             ok = do_set(App, Key, NewValue),
             on_set(App, Key, Value, Path, PathValue);
+        {ok, NewValue} ->
+            ok = do_set(App, Key, NewValue),
+            on_set(App, Key, NewValue, Path, PathValue);
+        {error, Reason} ->
+            error(Reason)
+    end;
+
+set(App, Key, Value) when is_atom(App) ->
+    case will_set(App, Key, Value) of
+        ok ->
+            ok = do_set(App, Key, Value),
+            on_set(App, Key, Value);
+        {ok, NewValue} ->
+            ok = do_set(App, Key, NewValue),
+            on_set(App, Key, NewValue);
         {error, Reason} ->
             error(Reason)
     end.
-
 
 
 
@@ -212,6 +221,9 @@ get_path(App, [H|T], Term, Default) when is_list(Term) ->
 get_path(_, [], Term, _) ->
     Term;
 
+get_path(_, Path, Term, ?ERROR) when is_map(Term)->
+    maps_utils:get_path(Path, Term);
+
 get_path(_, _, _, ?ERROR) ->
     error(badarg);
 
@@ -232,6 +244,29 @@ do_set(App, Key, Value) ->
     application:set_env(App, Key, Value),
     persistent_term:put({App, Key}, Value).
 
+
+%% @private
+do_set_path(Value, Path, PathValue) when is_map(Value) ->
+    maps_utils:put_path(Path, PathValue, Value);
+
+do_set_path(_, [], _) ->
+    error(badarg);
+
+do_set_path(Value, [H], PathValue) when is_list(Value) ->
+    lists:keystore(H, 1, Value, {H, PathValue});
+
+
+do_set_path(Value, [H|T], PathValue) when is_list(Value) ->
+    case lists:keyfind(H, 1, Value) of
+        false ->
+            NewChild = do_set_path([], T, PathValue),
+            lists:keystore(H, 1, Value, {H, NewChild});
+        {H, Child} ->
+            NewChild = do_set_path(Child, T, PathValue),
+            lists:keystore(H, 1, Value, {H, NewChild})
+    end.
+
+
 %% @private
 will_set(App, Key, Value) ->
     case get(App, ?OPTS_KEY, undefined) of
@@ -240,10 +275,10 @@ will_set(App, Key, Value) ->
                 true ->
                     Mod:will_set(Key, Value);
                 false ->
-                    {ok, Value}
+                    ok
             end;
         _ ->
-            {ok, Value}
+            ok
     end.
 
 
@@ -270,10 +305,10 @@ will_set(App, Key, Value, Path, PathValue) ->
                 true ->
                     Mod:will_set(Key, Value, Path, PathValue);
                 false ->
-                    {ok, Value}
+                    ok
             end;
         _ ->
-            {ok, Value}
+            ok
     end.
 
 
