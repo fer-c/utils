@@ -121,10 +121,8 @@ get(App, Key) ->
 
 get(App, [H|T], Default) ->
     Result = case get(App, H, Default) of
-        Term when is_map(Term) ->
-            maps_utils:get_path(T, Term, Default);
-        Term when is_list(Term) ->
-            get_path(App, T, Term, Default);
+        Term ->
+            key_value:get(T, Term, Default);
         _ ->
             %% We cannot get(T) from a term which is neither a map nor a list
             Default
@@ -161,7 +159,7 @@ set(App, [Key|Path], PathValue) when is_atom(App) ->
 
     case will_set(App, Key, Value, Path, PathValue) of
         ok ->
-            NewValue = do_set_path(Value, Path, PathValue),
+            NewValue = key_value:set(Path, PathValue, Value),
             ok = do_set(App, Key, NewValue),
             on_set(App, Key, Value, Path, PathValue);
         {ok, NewValue} ->
@@ -207,31 +205,6 @@ priv_dir() ->
     end.
 
 
-%% @private
-get_path(App, [H|T], Term, Default) when is_list(Term) ->
-    case lists:keyfind(H, 1, Term) of
-        false when Default == ?ERROR ->
-            error(badarg);
-        false ->
-            Default;
-        {H, Child} ->
-            get_path(App, T, Child, Default)
-    end;
-
-get_path(_, [], Term, _) ->
-    Term;
-
-get_path(_, Path, Term, ?ERROR) when is_map(Term)->
-    maps_utils:get_path(Path, Term);
-
-get_path(_, _, _, ?ERROR) ->
-    error(badarg);
-
-get_path(_, _, _, Default) ->
-    Default.
-
-
-
 maybe_badarg(?ERROR) ->
     error(badarg);
 
@@ -243,28 +216,6 @@ maybe_badarg(Term) ->
 do_set(App, Key, Value) ->
     application:set_env(App, Key, Value),
     persistent_term:put({App, Key}, Value).
-
-
-%% @private
-do_set_path(Value, Path, PathValue) when is_map(Value) ->
-    maps_utils:put_path(Path, PathValue, Value);
-
-do_set_path(_, [], _) ->
-    error(badarg);
-
-do_set_path(Value, [H], PathValue) when is_list(Value) ->
-    lists:keystore(H, 1, Value, {H, PathValue});
-
-
-do_set_path(Value, [H|T], PathValue) when is_list(Value) ->
-    case lists:keyfind(H, 1, Value) of
-        false ->
-            NewChild = do_set_path([], T, PathValue),
-            lists:keystore(H, 1, Value, {H, NewChild});
-        {H, Child} ->
-            NewChild = do_set_path(Child, T, PathValue),
-            lists:keystore(H, 1, Value, {H, NewChild})
-    end.
 
 
 %% @private
