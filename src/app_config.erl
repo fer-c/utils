@@ -43,27 +43,15 @@
 
 
 
--callback will_set(Key :: atom(), Value :: any()) ->
+-callback will_set(Key :: key_value:key(), Value :: any()) ->
     ok | {ok, NewValue :: any()} | {error, Reason :: any()}.
 
 
--callback will_set(
-    Key :: atom(), Value :: any(), Path :: list(), PathValue :: any()) ->
-    ok | {ok, NewValue :: any()} | {error, Reason :: any()}.
-
-
--callback on_set(Key :: atom(), Value :: any()) -> ok.
-
-
--callback on_set(
-    Key :: atom(), Value :: any(), Path :: list(), PathValue :: any()) ->
-    ok.
+-callback on_set(Key :: key_value:key(), Value :: any()) -> ok.
 
 
 -optional_callbacks([on_set/2]).
--optional_callbacks([on_set/4]).
 -optional_callbacks([will_set/2]).
--optional_callbacks([will_set/4]).
 
 
 
@@ -141,42 +129,25 @@ get(App, Key, Default) ->
 %% @doc
 %% @end
 %% -----------------------------------------------------------------------------
--spec set(
-    App :: atom(),
-    Key :: list() | atom() | tuple() | binary(),
-    Default :: term()) -> ok.
+-spec set(App :: atom(), Key :: key_value:key(), Default :: term()) ->
+    ok | no_return().
+
+set(App, Key, Value) when is_tuple(Key) ->
+    set(App, tuple_to_list(Key), Value);
 
 set(_, [], _)  ->
     error(badarg);
 
-set(App, [Key|Path], PathValue) when is_atom(App) ->
-    Value = case get(App, Key, undefined) of
-        Term when is_map(Term) orelse is_list(Term) ->
-            Term;
-        _ ->
-            []
-    end,
-
-    case will_set(App, Key, Value, Path, PathValue) of
-        ok ->
-            NewValue = key_value:set(Path, PathValue, Value),
-            ok = do_set(App, Key, NewValue),
-            on_set(App, Key, Value, Path, PathValue);
-        {ok, NewValue} ->
-            ok = do_set(App, Key, NewValue),
-            on_set(App, Key, NewValue, Path, PathValue);
-        {error, Reason} ->
-            error(Reason)
-    end;
-
-set(App, Key, Value) when is_atom(App) ->
-    case will_set(App, Key, Value) of
+set(App, Key, Value)
+when is_atom(App) andalso
+(is_atom(Key) orelse is_binary(Key) orelse is_list(Key)) ->
+    case maybe_will_set(App, Key, Value) of
         ok ->
             ok = do_set(App, Key, Value),
-            on_set(App, Key, Value);
+            maybe_on_set(App, Key, Value);
         {ok, NewValue} ->
             ok = do_set(App, Key, NewValue),
-            on_set(App, Key, NewValue);
+            maybe_on_set(App, Key, NewValue);
         {error, Reason} ->
             error(Reason)
     end.
@@ -213,14 +184,34 @@ maybe_badarg(Term) ->
 
 
 %% @private
+do_set(App, [Key], Value) ->
+    do_set(App, Key, Value);
+
+do_set(App, [H|T], Value) ->
+    KVTerm = key_value:set(T, Value, get(App, H, [])),
+    do_set(App, H, KVTerm);
+
 do_set(App, Key, Value) ->
     application:set_env(App, Key, Value),
     persistent_term:put({App, Key}, Value).
 
 
 %% @private
+maybe_will_set(App, Key, Value) ->
+    case erlang:get({?MODULE, events_enabled}) of
+        false ->
+            ok;
+        _ ->
+            will_set(App, Key, Value)
+    end.
+
+
+%% @private
 will_set(App, Key, Value) ->
-    case get(App, ?OPTS_KEY, undefined) of
+    %% We disable events to avoid endless loops
+    _ = put({?MODULE, events_enabled}, false),
+
+    try get(App, ?OPTS_KEY, undefined) of
         #{callback_mod := Mod} ->
             case erlang:function_exported(Mod, will_set, 2) of
                 true ->
@@ -230,12 +221,28 @@ will_set(App, Key, Value) ->
             end;
         _ ->
             ok
+    after
+        %% We disable events to avoid endless loops
+        _ = put({?MODULE, events_enabled}, true)
+    end.
+
+
+%% @private
+maybe_on_set(App, Key, Value) ->
+    case erlang:get({?MODULE, events_enabled}) of
+        false ->
+            ok;
+        _ ->
+            on_set(App, Key, Value)
     end.
 
 
 %% @private
 on_set(App, Key, Value) ->
-    case get(App, ?OPTS_KEY, undefined) of
+    %% We disable events to avoid endless loops
+    _ = put({?MODULE, events_enabled}, false),
+
+    try get(App, ?OPTS_KEY, undefined) of
         #{callback_mod := Mod} ->
             case erlang:function_exported(Mod, on_set, 2) of
                 true ->
@@ -245,34 +252,8 @@ on_set(App, Key, Value) ->
             end;
         _ ->
             ok
+    after
+        %% We re-enable events
+        _ = put({?MODULE, events_enabled}, true)
     end.
 
-
-%% @private
-will_set(App, Key, Value, Path, PathValue) ->
-    case get(App, ?OPTS_KEY, undefined) of
-        #{callback_mod := Mod} ->
-            case erlang:function_exported(Mod, will_set, 4) of
-                true ->
-                    Mod:will_set(Key, Value, Path, PathValue);
-                false ->
-                    ok
-            end;
-        _ ->
-            ok
-    end.
-
-
-%% @private
-on_set(App, Key, Value, Path, PathValue) ->
-    case get(App, ?OPTS_KEY, undefined) of
-        #{callback_mod := Mod} ->
-            case erlang:function_exported(Mod, on_set, 4) of
-                true ->
-                    Mod:on_set(Key, Value, Path, PathValue);
-                false ->
-                    ok
-            end;
-        _ ->
-            ok
-    end.
