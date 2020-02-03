@@ -213,6 +213,7 @@
 -export([with_paths/2]).
 -export([without_paths/2]).
 -export([merge/3]).
+-export([from_property_list/1]).
 -export([to_property_list/1]).
 
 
@@ -494,6 +495,9 @@ to_property_list(Map) ->
     to_property_list(maps:next(maps:iterator(Map)), []).
 
 %% @private
+to_property_list({K, V, none}, Acc) ->
+    [{K, V} | Acc];
+
 to_property_list({K, V, I}, Acc) when is_map(V) ->
     NewAcc = [{K, to_property_list(V)} | Acc],
     to_property_list(maps:next(I), NewAcc);
@@ -522,6 +526,37 @@ to_property(Term) when is_map(Term) ->
 
 to_property(Term) ->
     Term.
+
+
+%% -----------------------------------------------------------------------------
+%% @doc Returns a map representation of a property list. As opposed to
+%% maps:from_list/1 this function works recursively, turning each value of type
+%% list() into a map, asumming every element
+%% of the list is a `property:property()'.
+%% @end
+%% -----------------------------------------------------------------------------
+-spec from_property_list(PL :: [proplists:property()]) -> map().
+
+from_property_list([]) ->
+    maps:new();
+
+from_property_list(L) when is_list(L) ->
+    from_property_list(L, maps:new()).
+
+
+%% @private
+from_property_list([{K, V}|T], Acc) when is_list(V) ->
+    from_property_list(T, maps:put(K, from_property_list(V), Acc));
+
+from_property_list([{K, V}|T], Acc) ->
+    from_property_list(T, maps:put(K, V, Acc));
+
+from_property_list([], Acc) ->
+    Acc;
+
+from_property_list(Term, _Acc) ->
+    Term.
+
 
 %% -----------------------------------------------------------------------------
 %% @doc
