@@ -109,7 +109,7 @@ get(App, Key) ->
 
 get(App, [H|T], Default) ->
     Result = case get(App, H, Default) of
-        Term ->
+        Term when is_map(Term) orelse is_list(Term) ->
             key_value:get(T, Term, Default);
         _ ->
             %% We cannot get(T) from a term which is neither a map nor a list
