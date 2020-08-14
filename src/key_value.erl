@@ -90,17 +90,6 @@ get([H|T], KVTerm, Default) when is_list(KVTerm) ->
             maybe_badkey(Default)
     end;
 
-get([H|T], KVTerm, Default) when is_map(KVTerm) ->
-    case maps:find(H, KVTerm) of
-        {ok, Child} ->
-            get(T, Child, Default);
-        false ->
-            maybe_badkey(Default)
-    end;
-
-get(Key, KVTerm, Default) when is_map(KVTerm) ->
-    maybe_badkey(maps:get(Key, KVTerm, Default));
-
 get(Key, KVTerm, Default) when is_list(KVTerm) ->
     case lists:keyfind(Key, 1, KVTerm) of
         {Key, Value} ->
@@ -108,6 +97,17 @@ get(Key, KVTerm, Default) when is_list(KVTerm) ->
         false ->
             maybe_badkey(Default)
     end;
+
+get([H|T], KVTerm, Default) when is_map(KVTerm) ->
+    case maps:find(H, KVTerm) of
+        {ok, Child} ->
+            get(T, Child, Default);
+        error ->
+            maybe_badkey(Default)
+    end;
+
+get(Key, KVTerm, Default) when is_map(KVTerm) ->
+    maybe_badkey(maps:get(Key, KVTerm, Default));
 
 get(_, _, _) ->
     error(badarg).
