@@ -240,6 +240,7 @@ maybe_on_set(App, Key, Value) ->
 %% @private
 on_set(App, Key, Value) ->
     %% We disable events to avoid endless loops
+    %% in case Mod:on_set/2 calls our functions
     _ = put({?MODULE, events_enabled}, false),
 
     try get(App, ?OPTS_KEY, undefined) of
