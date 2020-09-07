@@ -67,7 +67,7 @@
 init(App) ->
     %% Init from environment
     Config0 = application:get_all_env(App),
-    Config1 = [{priv_dir, priv_dir()} | Config0],
+    Config1 = [{priv_dir, priv_dir(App)} | Config0],
     %% We initialise the config, caching all values as code
     %% We set configs at first level only
     _ = [set(App, Key, Value) || {Key, Value} <- Config1],
@@ -166,8 +166,8 @@ when is_atom(App) andalso
 %% Returns the app's priv dir
 %% @end
 %% -----------------------------------------------------------------------------
-priv_dir() ->
-    case code:priv_dir(bondy) of
+priv_dir(App) ->
+    case code:priv_dir(App) of
         {error, bad_name} ->
             filename:join(
                 [filename:dirname(code:which(?MODULE)), "..", "priv"]);
