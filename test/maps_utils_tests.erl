@@ -1,7 +1,7 @@
 %% =============================================================================
 %% maps_utils_tests - test suite.
 %%
-%% Copyright (c) 2016-1027 Ngineo Limited t/a Leapsight. All rights reserved.
+%% Copyright (c) 2016-1027 Leapsight. All rights reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -947,7 +947,6 @@ validate_map_multiple_spec_2_test() ->
 
 
 validate_map_multiple_spec_3_test() ->
-    %% dbg:tracer(), dbg:p(all, c), dbg:tpl(maps_utils, '_', x),
     Spec1 = #{
         type => #{required => true, datatype => {in, [dog]}}
     },

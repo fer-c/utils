@@ -1,7 +1,7 @@
 %% =============================================================================
 %% error_maps - standard representation of errors using maps
 %%
-%% Copyright (c) 2016-1027 Ngineo Limited t/a Leapsight. All rights reserved.
+%% Copyright (c) 2016-1027 Leapsight. All rights reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -62,7 +62,7 @@ new(Code, Msg, Desc) ->
 %% @doc
 %% @end
 %% -----------------------------------------------------------------------------
--spec add_error(map(), atom(), atom() | binary(), binary(), binary()) -> 
+-spec add_error(map(), atom(), atom() | binary(), binary(), binary()) ->
     error_map().
 
 add_error(Map, Code, Prop, Msg, Desc) ->
@@ -71,7 +71,7 @@ add_error(Map, Code, Prop, Msg, Desc) ->
         code => Code,
         key => Prop,
         message => Msg,
-        description => Desc  
+        description => Desc
     },
     Map#{errors => [E|L]}.
 

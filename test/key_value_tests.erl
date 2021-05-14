@@ -1,7 +1,7 @@
 %% =============================================================================
 %% key_value_tests - test suite.
 %%
-%% Copyright (c) 2016-1027 Ngineo Limited t/a Leapsight. All rights reserved.
+%% Copyright (c) 2016-1027 Leapsight. All rights reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
