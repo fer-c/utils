@@ -1234,17 +1234,8 @@ is_valid_datatype(_, _) ->
     true.
 
 
-term_to_iolist(Term) when is_tuple(Term) ->
-    <<"<<tuple>>">>;
-
-term_to_iolist(Term) when is_map(Term) ->
-    <<"<<map>>">>;
-
 term_to_iolist(Term) when is_binary(Term) ->
     Term;
-
-term_to_iolist(Term) when is_list(Term) ->
-    [term_to_iolist(X) || X <- Term];
 
 term_to_iolist(Term) ->
     io_lib:format("~p", [Term]).
