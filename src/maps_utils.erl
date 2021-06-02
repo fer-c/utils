@@ -25,68 +25,6 @@
 -define(ALLOW_NULL, true).
 -define(ALLOW_UNDEFINED, false).
 
--define(INVALID_DATA_CODE, invalid_data).
--define(INVALID_DATA_MSG(N),
-    iolist_to_binary([<<"There were ">>, term_to_iolist(N), <<" validation errors.">>])
-).
--define(INVALID_DATA_DESC(N),
-    iolist_to_binary([<<"There were ">>, term_to_iolist(N), <<" validation errors.">>])
-).
-
--define(ERROR_INVALID_DATA(L, M), #{
-    code => ?INVALID_DATA_CODE,
-    message => M,
-    description => ?INVALID_DATA_DESC(length(L)),
-    errors => L
-}).
-
--define(MISSING_REQUIRED_VALUE_MSG(K),
-    iolist_to_binary([
-        <<"A value for '">>, term_to_iolist(K), <<"' is required.">>])
-).
-
--define(ERROR_MISSING_REQUIRED_VALUE(K, M), #{
-    code => missing_required_value,
-    key => K,
-    message => M,
-    description => iolist_to_binary([
-        <<"A value for '">>, term_to_iolist(K), <<"' is required.">>])
-}).
-
-
--define(INVALID_DATATYPE_MSG(K, DT),
-    iolist_to_binary([
-        <<"The value for '">>, term_to_iolist(K),
-        <<"' is not a of type '">>, term_to_iolist(DT), <<"'">>
-    ])
-).
-
--define(ERROR_INVALID_DATATYPE(K, DT, M), #{
-    code => invalid_datatype,
-    key => K,
-    message => M,
-    description => iolist_to_binary([
-        <<"The value for '">>, term_to_iolist(K),
-        <<"' is not a of type '">>, term_to_iolist(DT), <<"'.">>
-    ])
-}).
-
-
--define(INVALID_VALUE_MSG(K, V),
-    iolist_to_binary([
-        <<"The value '">>, term_to_iolist(V),
-        <<"' for '">>, term_to_iolist(K), <<"' is not valid.">>])
-).
-
--define(ERROR_INVALID_VALUE(K, V, M), #{
-    code => invalid_value,
-    key => K,
-    value => V,
-    message => M,
-    description => iolist_to_binary([
-        <<"The value '">>, term_to_iolist(V),
-        <<"' for '">>, term_to_iolist(K), <<"' did not pass the validator.">>])
-}).
 
 -type base_datatype()          ::   atom
                                     | binary
@@ -164,24 +102,21 @@
                                     }.
 -type map_update_spec()         ::  #{term() => entry_update_spec()}.
 
--type error_fun()   :: fun((Key :: term(), Cnt :: integer()) -> binary()).
--type key_error_fun() :: fun((Key :: term(), Type :: datatype()) -> binary()).
+-type key()                     ::  atom() | list() | binary().
+-type error_tuple()             ::
+    {missing_required_value, key()}
+    | {invalid_datatype, key(), Value :: any(), datatype()}
+    | {invalid_value, key(), Value :: any()}.
 
--type formatters() ::  #{
-    invalid_data => error_fun(),
-    invalid_value => key_error_fun(),
-    invalid_datatype => key_error_fun(),
-    missing_required_value => key_error_fun()
-}.
-
--type validation_opts() ::  #{
+    -type validation_opts() ::  #{
     atomic => boolean(),
     keep_unknown => boolean(),
     unknown_label_validator => fun((term()) -> boolean()),
     labels => binary | atom | existing_atom | attempt_atom,
     error_code => atom(),
-    error_formatters => formatters()
+    error_formatter => fun((error_tuple()) -> any())
 }.
+
 
 -type path()    ::  [term()].
 
@@ -929,7 +864,7 @@ validate_key(K, In, KSpec, Opts) ->
                     maybe_eval(K, V, KSpec, Opts);
                 false ->
                     Reason = invalid_datatype_error(
-                        K, maps:get(datatype, KSpec), Opts),
+                        K, V, maps:get(datatype, KSpec), Opts),
                     {error, Reason}
             end;
 
@@ -1037,7 +972,7 @@ maybe_eval(K, V, KSpec, Opts) ->
 
 %% @private
 do_maybe_eval(K, V, #{validator := {list, _}}, Opts) when not is_list(V) ->
-    throw(invalid_datatype_error(K, list, Opts));
+    throw(invalid_value_error(K, V, Opts));
 
 do_maybe_eval(K, V, #{validator := {list, Fun}}, Opts)
 when is_list(V), is_function(Fun, 1) ->
@@ -1177,9 +1112,9 @@ do_maybe_eval(K, V, #{validator := ValidatorList}, Opts)
 when is_list(ValidatorList) ->
     validates_any(K, V, ValidatorList, Opts);
 
-do_maybe_eval(K, _, #{validator := Spec}, Opts) when is_map(Spec) ->
+do_maybe_eval(K, V, #{validator := Spec}, Opts) when is_map(Spec) ->
     %% Value is not a map
-    {error, invalid_datatype_error(K, map, Opts)};
+    {error, invalid_datatype_error(K, V, map, Opts)};
 
 do_maybe_eval(K, V, #{validator := _} = Spec, Opts) ->
    error(badarg, [K, V, Spec, Opts]);
@@ -1299,8 +1234,17 @@ is_valid_datatype(_, _) ->
     true.
 
 
+term_to_iolist(Term) when is_tuple(Term) ->
+    <<"<<tuple>>">>;
+
+term_to_iolist(Term) when is_map(Term) ->
+    <<"<<map>>">>;
+
 term_to_iolist(Term) when is_binary(Term) ->
     Term;
+
+term_to_iolist(Term) when is_list(Term) ->
+    [term_to_iolist(X) || X <- Term];
 
 term_to_iolist(Term) ->
     io_lib:format("~p", [Term]).
@@ -1337,37 +1281,76 @@ is_datatype(T) -> error({invalid_datatype, T}).
 
 
 %% @private
-invalid_data_error(L, #{error_formatters := #{invalid_data := Fun}}) ->
-    ?ERROR_INVALID_DATA(L, Fun(length(L)));
+invalid_data_error(Errors, #{error_formatter := Fun})
+when is_function(Fun, 1) ->
+    Errors;
 
-invalid_data_error(L, _) ->
-    ?ERROR_INVALID_DATA(L, ?INVALID_DATA_MSG(length(L))).
+invalid_data_error([Error], _) ->
+    Error;
+
+invalid_data_error(Errors, _) ->
+    #{
+        code => invalid_data,
+        message => <<"Invalid data.">>,
+        description => iolist_to_binary([
+            <<"There were ">>,
+            term_to_iolist(length(Errors)),
+            <<" validation errors.">>
+        ]),
+        errors => Errors
+    }.
+
+
 
 
 %% @private
-missing_required_value_error(
-    K, #{error_formatters := #{missing_required_value := Fun}}) ->
-    ?ERROR_MISSING_REQUIRED_VALUE(K, Fun(K));
+missing_required_value_error(K, #{error_formatter := Fun})
+when is_function(Fun, 1) ->
+    Fun({missing_required_value, K});
 
 missing_required_value_error(K, _) ->
-    ?ERROR_MISSING_REQUIRED_VALUE(K, ?MISSING_REQUIRED_VALUE_MSG(K)).
+    #{
+        code => missing_required_value,
+        key => K,
+        message => <<"Missing required value.">>,
+        description => iolist_to_binary([
+            <<"A value for '">>, term_to_iolist(K), <<"' is required.">>])
+    }.
 
 
 %% @private
-invalid_datatype_error(
-    K, DT, #{error_formatters := #{invalid_datatype := Fun}}) ->
-    ?ERROR_INVALID_DATATYPE(K, DT, Fun(K, DT));
+invalid_datatype_error(K, V, DT, #{error_formatter := Fun})
+when is_function(Fun, 1) ->
+    Fun({invalid_datatype, K, V, DT});
 
-invalid_datatype_error(K, DT, _) ->
-    ?ERROR_INVALID_DATATYPE(K, DT, ?INVALID_DATATYPE_MSG(K, DT)).
+invalid_datatype_error(K, V, DT, _) ->
+    #{
+        code => invalid_datatype,
+        key => K,
+        value => iolist_to_binary(term_to_iolist(V)),
+        message => <<"Invalid datatype.">>,
+        description => iolist_to_binary([
+            <<"The value for '">>, term_to_iolist(K),
+            <<"' is not a of type '">>, term_to_iolist(DT), <<"'.">>
+        ])
+    }.
 
 
 %% @private
-invalid_value_error(K, V, #{error_formatters := #{invalid_value := Fun}}) ->
-    ?ERROR_INVALID_VALUE(K, V, Fun(K, V));
+invalid_value_error(K, V, #{error_formatter := Fun})
+when is_function(Fun, 1) ->
+    Fun({invalid_value, K, V});
 
 invalid_value_error(K, V, _) ->
-    ?ERROR_INVALID_VALUE(K, V, ?INVALID_VALUE_MSG(K, V)).
+    #{
+        code => invalid_value,
+        key => K,
+        value => V,
+        message => <<"Invalid value.">>,
+        description => iolist_to_binary([
+            <<"The value '">>, term_to_iolist(V),
+            <<"' for '">>, term_to_iolist(K), <<"' did not pass the validator.">>])
+    }.
 
 %% From maps.erl
 error_type(M) when is_map(M) -> badarg;
@@ -1407,7 +1390,7 @@ validates_any(K, V, Validators, Opts) ->
 
     try
         error = lists:foldl(Fun, error, Validators),
-        throw(invalid_datatype_error(K, V, Opts))
+        throw(invalid_value_error(K, V, Opts))
     catch
         throw:{true, Val} ->
             {ok, Val}
