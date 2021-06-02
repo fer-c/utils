@@ -45,7 +45,7 @@ new({missing_required_value = Type, Key0}, Opts) ->
 
 new({invalid_datatype = Type, Key0, Value0, Datatype0}, Opts) ->
     Key = term_to_iolist(Key0),
-    Value = term_to_iolist(Value0),
+    Value = term_to_iolist(Value0, safe),
     Datatype = term_to_iolist(Datatype0),
     Msg = <<"Invalid datatype.">>,
     Desc = iolist_to_binary([
@@ -61,7 +61,7 @@ new({invalid_datatype = Type, Key0, Value0, Datatype0}, Opts) ->
     new(Type, Msg, Desc, Details);
 
 new({invalid_value = Type, Key0, Value0}, Opts) ->
-    Value = term_to_iolist(Value0),
+    Value = term_to_iolist(Value0, safe),
     Key = term_to_iolist(Key0),
     Msg = <<"Invalid value.">>,
     Desc = iolist_to_binary([
@@ -101,18 +101,18 @@ new(Type, Title, Description, Details, Meta) ->
 
 
 
+term_to_iolist(Term) ->
+    term_to_iolist(Term, normal).
 
-term_to_iolist(Term) when is_tuple(Term) ->
+
+term_to_iolist(Term, safe) when is_tuple(Term) ->
     <<"<<tuple>>">>;
 
-term_to_iolist(Term) when is_map(Term) ->
+term_to_iolist(Term, safe) when is_map(Term) ->
     <<"<<map>>">>;
 
-term_to_iolist(Term) when is_binary(Term) ->
+term_to_iolist(Term, _) when is_binary(Term) ->
     Term;
 
-term_to_iolist(Term) when is_list(Term) ->
-    [term_to_iolist(X) || X <- Term];
-
-term_to_iolist(Term) ->
+term_to_iolist(Term, _) ->
     io_lib:format("~p", [Term]).
