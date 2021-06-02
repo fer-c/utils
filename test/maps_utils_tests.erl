@@ -118,25 +118,31 @@ datatype_1_test() ->
     ).
 
 datatype_format_1_test() ->
-    Msg = <<"Foo">>,
     ?assertError(
-        #{code := invalid_datatype, message := Msg},
+        {x, 1, boolean},
         maps_utils:validate(
             #{x => 1},
             #{x => #{datatype => boolean}},
-             #{error_formatters => #{
-                invalid_datatype => fun(_, _) -> Msg end
-            }}
+            #{error_formatter => fun
+                ({invalid_datatype, K, V, DT}) ->
+                    {K, V, DT}
+                end
+            }
         )
     ).
 
 
 validator_1_test() ->
     ?assertError(
-        #{code := invalid_value},
+        {x, true},
         maps_utils:validate(
             #{x => true},
-            #{x => #{validator => fun erlang:is_integer/1}}
+            #{x => #{validator => fun erlang:is_integer/1}},
+            #{error_formatter => fun
+                ({invalid_value, K, V}) ->
+                    {K, V}
+                end
+            }
         )
     ).
 
@@ -843,10 +849,15 @@ validate_fun_list_test() ->
 
 validate_fun_list_error_test() ->
     ?assertError(
-        #{code := invalid_datatype},
+        {x, 1},
         maps_utils:validate(
             #{x => 1},
-            #{x => #{validator => {list, fun(X) -> X>0 end}}}
+            #{x => #{validator => {list, fun(X) -> X>0 end}}},
+            #{error_formatter => fun
+                ({invalid_value, K, V}) ->
+                    {K, V}
+                end
+            }
         )
     ).
 
@@ -874,10 +885,15 @@ validate_mutiple_spec_1_test() ->
     SubSpec = #{y => #{datatype => binary}},
     SubSpec2 = #{y => #{datatype => integer}},
     ?assertError(
-        #{code := invalid_datatype},
+        {x, #{y := "asdasd"}},
         maps_utils:validate(
             #{x => #{y => "asdasd"}},
-            #{x => #{validator => [SubSpec, SubSpec2]}}
+            #{x => #{validator => [SubSpec, SubSpec2]}},
+            #{error_formatter => fun
+                ({invalid_value, K, V}) ->
+                    {K, V}
+                end
+            }
         )
     ).
 
@@ -980,10 +996,15 @@ validate_not_in_datatype_test() ->
 validate_fun_list_spec_error_test() ->
     SubSpec = #{y => #{datatype => binary}},
     ?assertError(
-        #{code := invalid_datatype},
+        {x, #{y := 1}},
         maps_utils:validate(
             #{x => #{y => 1}},
-            #{x => #{validator => {list, SubSpec}}}
+            #{x => #{validator => {list, SubSpec}}},
+            #{error_formatter => fun
+                ({invalid_value, K, V}) ->
+                    {K, V}
+                end
+            }
         )
     ).
 
