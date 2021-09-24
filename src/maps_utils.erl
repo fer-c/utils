@@ -61,6 +61,7 @@
                                         | {merge, fun((map()) -> map())}
                                         | boolean()
                                         | error
+                                        | {error, Reason :: any()}
                                     ).
 
 -type validator()               ::  {list, validator_fun()}
@@ -1096,6 +1097,8 @@ do_maybe_eval(K, V, #{validator := Fun}, Opts) when is_function(Fun, 1) ->
             {error, invalid_value_error(K, V, Opts)};
         error ->
             {error, invalid_value_error(K, V, Opts)};
+        {error, Reason} ->
+            {error, invalid_value_error(K, V, Opts#{reason => Reason})};
         _ ->
             error({invalid_validator_return_value, K})
     end;
@@ -1328,9 +1331,23 @@ invalid_datatype_error(K, V, DT, _) ->
 
 
 %% @private
-invalid_value_error(K, V, #{error_formatter := Fun})
+invalid_value_error(K, V, #{error_formatter := Fun} = Opts)
 when is_function(Fun, 1) ->
-    Fun({invalid_value, K, V});
+    case maps:get(reason, Opts, undefined) of
+        undefined ->
+            Fun({invalid_value, K, V});
+        Reason ->
+            Fun({invalid_value, K, V, Reason})
+    end;
+
+invalid_value_error(K, V, #{reason := Reason}) ->
+    #{
+        code => invalid_value,
+        key => K,
+        message => <<"Invalid value.">>,
+        description => iolist_to_binary([
+            <<"The value for '">>, term_to_iolist(K), <<"' did not pass the validator. Reason: ">>, term_to_iolist(Reason)])
+    };
 
 invalid_value_error(K, V, _) ->
     #{
