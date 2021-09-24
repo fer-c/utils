@@ -431,9 +431,6 @@ to_property_list(Map) ->
     to_property_list(maps:next(maps:iterator(Map)), []).
 
 %% @private
-to_property_list({K, V, none}, Acc) ->
-    [{K, V} | Acc];
-
 to_property_list({K, V, I}, Acc) when is_map(V) ->
     NewAcc = [{K, to_property_list(V)} | Acc],
     to_property_list(maps:next(I), NewAcc);
@@ -1071,10 +1068,10 @@ when is_map(V), is_list(Specs) ->
         throw(invalid_value_error(K, V, Opts)),
 
         case validates_any(Key, Value, Specs, Opts) of
-            {error, Reason} ->
-                throw(Reason);
             {ok, NewValue} ->
-                NewValue
+                NewValue;
+            {error, Reason} ->
+                throw(Reason)
         end
     end,
 
@@ -1340,13 +1337,13 @@ when is_function(Fun, 1) ->
             Fun({invalid_value, K, V, Reason})
     end;
 
-invalid_value_error(K, V, #{reason := Reason}) ->
+invalid_value_error(K, _, #{reason := Reason}) ->
     #{
         code => invalid_value,
         key => K,
         message => <<"Invalid value.">>,
         description => iolist_to_binary([
-            <<"The value for '">>, term_to_iolist(K), <<"' did not pass the validator. Reason: ">>, term_to_iolist(Reason)])
+            <<"The value for '">>, term_to_iolist(K), <<"' did not pass the validator. ">>, term_to_iolist(Reason)])
     };
 
 invalid_value_error(K, V, _) ->
@@ -1401,5 +1398,7 @@ validates_any(K, V, Validators, Opts) ->
         throw(invalid_value_error(K, V, Opts))
     catch
         throw:{true, Val} ->
-            {ok, Val}
+            {ok, Val};
+        throw:Reason ->
+            {error, Reason}
     end.
