@@ -692,7 +692,7 @@ element_meets(N, {_, _} = B) ->
     element_meets(interval(N), B);
 
 element_meets(A, B) ->
-    A =:= B.
+    abs(A - B) == 1.
 
 
 %% @private

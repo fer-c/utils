@@ -53,6 +53,9 @@ random(_, _) ->
 %% From https://erlangcentral.org/wiki/index.php/RandomShuffle
 %% @end
 %% -----------------------------------------------------------------------------
+shuffle([]) ->
+    [];
+
 shuffle(List) ->
     %% Determine the log n portion then randomize the list.
     randomize(round(math:log(length(List)) + 0.5), List).
