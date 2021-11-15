@@ -81,8 +81,9 @@
 
 
 -type entry_spec()              ::  #{
-                                        key => any(), %% a new name for the Key
-                                        alias => any(),
+                                        key => key(), %% a new name for the Key
+                                        alias => key(),
+                                        aliases => [key()],
                                         required => boolean(),
                                         allow_undefined => boolean() | remove,
                                         allow_null => boolean() | remove,
@@ -580,13 +581,8 @@ maybe_cleanup(_In, _Spec, _, Out) ->
 
 %% @private
 cleanup(In, Spec, ToRemove0) ->
-    CollectAliases = fun
-        (_, #{alias := Alias}, Acc) ->
-            [Alias|Acc];
-        (_, _, Acc) ->
-            Acc
-    end,
-    ToRemove1 = maps:fold(CollectAliases, ToRemove0, Spec),
+    CollectAliases = fun(_, Spec, Acc) -> [get_aliases(Spec)|Acc] end,
+    ToRemove1 = lists:flatten(maps:fold(CollectAliases, ToRemove0, Spec)),
     maps:without(ToRemove1, In).
 
 %% @private
@@ -882,15 +878,25 @@ validate_update_key(K, KSpec, In, Changes, Opts) ->
     end.
 
 
-find(K1, Map, Spec) ->
-    case {maps:find(K1, Map), Spec} of
-        {error, #{alias := K2}} ->
-            maps:find(K2, Map);
-        {error, _} ->
-            error;
-        {OK, _} ->
+find(K, Map, Spec) ->
+    case maps:find(K, Map) of
+        error ->
+            find(K, Map, Spec, get_aliases(Spec));
+        OK ->
             OK
     end.
+
+
+find(K, Map, Spec, [H|T]) ->
+    case maps:find(H, Map) of
+        {ok, _} = OK ->
+            OK;
+        error ->
+            find(K, Map, Spec, T)
+    end;
+
+find(_, _, _, []) ->
+    error.
 
 
 %% @private
@@ -1402,3 +1408,16 @@ validates_any(K, V, Validators, Opts) ->
         throw:Reason ->
             {error, Reason}
     end.
+
+
+get_aliases(#{alias := Alias, aliases := Aliases}) ->
+    Aliases ++ [Alias];
+
+get_aliases(#{aliases := Aliases}) ->
+    Aliases;
+
+get_aliases(#{alias := Alias}) ->
+    [Alias];
+
+get_aliases(_) ->
+    [].
