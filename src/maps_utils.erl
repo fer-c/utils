@@ -581,7 +581,7 @@ maybe_cleanup(_In, _Spec, _, Out) ->
 
 %% @private
 cleanup(In, Spec, ToRemove0) ->
-    CollectAliases = fun(_, Spec, Acc) -> [get_aliases(Spec)|Acc] end,
+    CollectAliases = fun(_, ISpec, Acc) -> [get_aliases(ISpec)|Acc] end,
     ToRemove1 = lists:flatten(maps:fold(CollectAliases, ToRemove0, Spec)),
     maps:without(ToRemove1, In).
 
