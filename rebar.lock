@@ -13,4 +13,8 @@
  {<<"ksuid">>,
   {git,"https://gitlab.com/leapsight/ksuid.git",
        {ref,"a5016017edd1e99d46c9a6d4c348cb818e542b13"}},
+  0},
+ {<<"maps_utils">>,
+  {git,"https://github.com/Leapsight/maps_utils.git",
+       {ref,"afa2da62e0e691ce33d1008cc424c994fff339bf"}},
   0}].
